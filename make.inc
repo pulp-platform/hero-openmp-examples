@@ -1,6 +1,8 @@
 ifndef PULP_SDK_HOME
-	$(error PULP_SDK_HOME is not set)
+$(error PULP_SDK_HOME is not set)
 endif
+
+ifndef_any_of = $(filter undefined,$(foreach v,$(1),$(origin $(v))))
 
 ############## Name of output executable file
 ifdef EXENAME
@@ -45,13 +47,15 @@ clean:
 
 prepare: $(EXE)
 ifndef PULP_EMU_ADDR
-	$(error PULP_EMU_ADDR is not set)
+$(error PULP_EMU_ADDR is not set)
 endif
+	ssh -t $(PULP_EMU_ADDR) 'sudo init_bigpulp.sh'
 	scp $(EXE) $(PULP_EMU_ADDR):~
 
 
 run: prepare $(EXE)
-ifneq ($(call ifdef_any_of,PULP_EMU_ADDR PULP_EMU_SHARE_DIR),)
-	$(error PULP_EMU_ADDR and/or PULP_EMU_SHARE_DIR is not set)
-endif
+ifeq ($(call ifndef_any_of,PULP_EMU_ADDR PULP_EMU_SHARE_DIR),)
 	ssh -t $(PULP_EMU_ADDR) 'export LD_LIBRARY_PATH='"'$(PULP_EMU_SHARE_DIR)/lib'":"'$(PULP_EMU_SHARE_DIR)/arm-linux-gnueabihf/lib'"'; ./$(EXE)'
+else
+$(error PULP_EMU_ADDR and/or PULP_EMU_SHARE_DIR is not set)
+endif
