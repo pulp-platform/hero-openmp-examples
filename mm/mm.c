@@ -33,15 +33,25 @@ void mat_print(uint32_t * __restrict__ a,  uint32_t width, uint32_t height)
 }
 #pragma omp end declare target
 
-int main ()
+int main(int argc, char *argv[])
 {    
     int width  = 32;
     int height = 32;
-    int error  = 0;
-    uint32_t a[width*height];
-    uint32_t b[width*height];
-    uint32_t c[width*height];
-    uint32_t g[width*height];
+    uint32_t *a;
+    uint32_t *b;
+    uint32_t *c;
+    uint32_t *g;
+
+    if( argc > 1 )
+    {
+        width = atoi(argv[1]);
+        height = atoi(argv[1]);
+    }
+
+    a = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
+    b = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
+    c = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
+    g = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
 
     /* Init */    
     for (int i=0; i<width; i++){
@@ -53,9 +63,9 @@ int main ()
         }
     }
 
-    for(int i=0; i < 4; ++i)
+    for(int iter=0; iter < 4; ++iter)
     {
-        error = 0;
+        printf("MatMul DMA! Width %d Height %d, a %x, b %x, c %x\n", (int) width, (int) height, (int) a, (int) b, (int) c);
         clock_gettime(CLOCK_REALTIME,&start);
         #pragma omp target map(to: a[0:width*height], b[0:width*height]) map(from: c[0:width*height])
         {
@@ -64,15 +74,12 @@ int main ()
             uint32_t *local_b = (uint32_t *) &local_space[1*width*height*sizeof(uint32_t)];
             uint32_t *local_c = (uint32_t *) &local_space[2*width*height*sizeof(uint32_t)];
 
-            
-            // pulp_memcpy(local_a, a, width*height*sizeof(uint32_t));
-            // pulp_memcpy(local_b, a, width*height*sizeof(uint32_t));
+            pulp_memcpy(local_a, a, width*height*sizeof(uint32_t));
+            pulp_memcpy(local_b, b, width*height*sizeof(uint32_t));
 
-            printf("MatMul DMA! Width %d Height %d, a %x, b %x, c %x\n", (int) width, (int) height, (int) a, (int) b, (int) c);
-            mat_print(c, width, height);
-            // matmul(a, b, c, width, height);
+            matmul(local_a, local_b, local_c, width, height);
 
-            // pulp_memcpy(c, local_c, width*height*sizeof(uint32_t));
+            pulp_memcpy(c, local_c, width*height*sizeof(uint32_t));
             pulp_l1free(local_space);
         }
         clock_gettime(CLOCK_REALTIME,&stop);        
@@ -82,23 +89,19 @@ int main ()
         printf("Exec Time [host cycles] = %.0f (%f s)\n", exe_time*ARM_CLK_FREQ_MHZ*1000000, exe_time);
 
         matmul(a, b, g, width, height);
-        mat_print(g, width, height);
+        //mat_print(g, width, height);
 
         /*Checksum */
         for (int i=0; i<width; i++) {
             for (int  j=0; j<height; j++) {
                 // printf("%d,", c[i*width+j]);
                 if(g[i*width+j] != c[i*width+j] ) {
-                    error = 1;
-                    printf("WRONG!\n");
-                    break;
+                    printf("Checksum Error (iteration %d)!\n", iter);
+                    exit(-1);
                 }
             }
-            if(error)
-                break;
         }
 
-        error = 0;
         for (int i=0; i<width; i++)
            for (int j=0; j<height; j++){
                c[i*width+j] = 0;
@@ -106,12 +109,12 @@ int main ()
            }
     }
 
-    for(int i=0; i < 4; ++i)
+    for(int iter=0; iter < 4; ++iter)
     {
+        printf("MatMul no DMA! Width %d Height %d, a %x, b %x, c %x\n", (int) width, (int) height, (int) a, (int) b, (int) c);
         clock_gettime(CLOCK_REALTIME,&start);
         #pragma omp target map(to: a[0:width*height], b[0:width*height]) map(from: c[0:width*height])
         {
-            printf("MatMul no DMA! Width %d Height %d, a %x, b %x, c %x\n", (int) width, (int) height, (int) a, (int) b, (int) c);
             matmul(a, b, c, width, height);
         }
         clock_gettime(CLOCK_REALTIME,&stop);        
@@ -126,8 +129,8 @@ int main ()
             for (int  j=0; j<height; j++){
                 // printf("%d,", c[i*width+j]);
                 if(g[i*width+j] != c[i*width+j] ) {
-                    printf("WRONG!\n");
-                    break;
+                    printf("Checksum Error (iteration no-DMA %d)!\n", iter);
+                    exit(-1);
                 }
             }
         }
@@ -137,16 +140,12 @@ int main ()
             for (int  j=0; j<height; j++) {
                 // printf("%d,", c[i*width+j]);
                 if(g[i*width+j] != c[i*width+j] ) {
-                    error = 1;
-                    printf("WRONG!\n");
-                    break;
+                    printf("Checksum Error!\n");
+                    exit(-1);
                 }
             }
-            if(error)
-                break;
         }
 
-        error = 0;
         for (int i=0; i<width; i++)
            for (int j=0; j<height; j++){
                c[i*width+j] = 0;
@@ -154,5 +153,9 @@ int main ()
            }
     }
 
+    free(a);
+    free(b);
+    free(c);
+    free(g);
     return 0;
 }
