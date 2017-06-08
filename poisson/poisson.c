@@ -10,8 +10,106 @@
 int main ( int argc, char *argv[] );
 float r8mat_rms ( int nx, int ny, float a[] );
 void rhs ( int nx, int ny, float f[] );
+#pragma omp declare target
 void sweep ( int nx, int ny, float dx, float dy, float f[], 
-  int itold, int itnew, float u[], float unew[] );
+  int itold, int itnew, float u[], float unew[] )
+
+/******************************************************************************/
+/*
+  Purpose:
+
+   SWEEP carries out one step of the Jacobi iteration.
+
+  Discussion:
+
+    Assuming DX = DY, we can approximate
+
+      - ( d/dx d/dx + d/dy d/dy ) U(X,Y) 
+
+    by
+
+      ( U(i-1,j) + U(i+1,j) + U(i,j-1) + U(i,j+1) - 4*U(i,j) ) / dx / dy
+
+    The discretization employed below will not be correct in the general
+    case where DX and DY are not equal.  It's only a little more complicated
+    to allow DX and DY to be different, but we're not going to worry about 
+    that right now.
+
+  Licensing:
+
+    This code is distributed under the GNU LGPL license. 
+
+  Modified:
+
+    14 December 2011
+
+  Author:
+
+    John Burkardt
+
+  Parameters:
+
+    Input, int NX, NY, the X and Y grid dimensions.
+
+    Input, float DX, DY, the spacing between grid points.
+
+    Input, float F[], the right hand side data.
+
+    Input, int ITOLD, the iteration index on input.
+
+    Input, int ITNEW, the desired iteration index
+    on output.
+
+    Input, float U[, the solution estimate on 
+    iteration ITNEW-1.
+
+    Input/output, float UNEW[, on input, the solution 
+    estimate on iteration ITOLD.  On output, the solution estimate on 
+    iteration ITNEW.
+*/
+{
+  int i;
+  int it;
+  int j;
+
+# pragma omp parallel shared ( dx, dy, f, itnew, itold, nx, ny, u, unew ) private ( i, it, j )
+  for ( it = itold + 1; it <= itnew; it++ )
+  {
+/*
+  Save the current estimate.
+*/
+# pragma omp for
+    for ( j = 0; j < ny; j++ )
+    {
+      for ( i = 0; i < nx; i++ )
+      {
+        u[i+j*nx] = unew[i+j*nx];
+      }
+    }
+/*
+  Compute a new estimate.
+*/
+# pragma omp for
+    for ( j = 0; j < ny; j++ )
+    {
+      for ( i = 0; i < nx; i++ )
+      {
+        if ( i == 0 || j == 0 || i == nx - 1 || j == ny - 1 )
+        {
+          unew[i+j*nx] = f[i+j*nx];
+        }
+        else
+        { 
+          unew[i+j*nx] = 0.25 * ( 
+            u[(i-1)+j*nx] + u[i+(j+1)*nx] + u[i+(j-1)*nx] + u[i+1+j*nx] + f[i+j*nx] * dx * dy );
+        }
+      }
+    }
+
+  }
+  return;
+}
+#pragma omp end declare target
 void timestamp ( void );
 float u_exact ( float x, float y );
 float uxxyy_exact ( float x, float y );
@@ -155,7 +253,7 @@ int main ( int argc, char *argv[] )
     for ( i = 0; i < nx; i++ )
     {
       x = ( float ) ( i ) / ( float ) ( nx - 1 );
-      uexact[i+j*NX] = u_exact ( x, y );
+      uexact[i+j*nx] = u_exact ( x, y );
     }
   }
   u_norm = r8mat_rms ( nx, ny, uexact );
@@ -191,7 +289,9 @@ int main ( int argc, char *argv[] )
   SWEEP carries out 500 Jacobi steps in parallel before we come
   back to check for convergence.
 */
-    sweep ( nx, ny, dx, dy, f, itold, itnew, u, unew );
+#   pragma omp target map(to: itold, itnew, f[0:NX*NY], u[0:NX*NY]) map(tofrom: unew[0:NX*NY])
+    sweep ( NX, NY, dx, dy, f, itold, itnew, u, unew );
+
 /*
   Check for convergence.
 */
@@ -378,107 +478,6 @@ void rhs ( int nx, int ny, float f[] )
 
   printf ( "  RMS of F = %g\n", fnorm );
 
-  return;
-}
-/******************************************************************************/
-
-void sweep ( int nx, int ny, float dx, float dy, float f[], 
-  int itold, int itnew, float u[], float unew[] )
-
-/******************************************************************************/
-/*
-  Purpose:
-
-   SWEEP carries out one step of the Jacobi iteration.
-
-  Discussion:
-
-    Assuming DX = DY, we can approximate
-
-      - ( d/dx d/dx + d/dy d/dy ) U(X,Y) 
-
-    by
-
-      ( U(i-1,j) + U(i+1,j) + U(i,j-1) + U(i,j+1) - 4*U(i,j) ) / dx / dy
-
-    The discretization employed below will not be correct in the general
-    case where DX and DY are not equal.  It's only a little more complicated
-    to allow DX and DY to be different, but we're not going to worry about 
-    that right now.
-
-  Licensing:
-
-    This code is distributed under the GNU LGPL license. 
-
-  Modified:
-
-    14 December 2011
-
-  Author:
-
-    John Burkardt
-
-  Parameters:
-
-    Input, int NX, NY, the X and Y grid dimensions.
-
-    Input, float DX, DY, the spacing between grid points.
-
-    Input, float F[], the right hand side data.
-
-    Input, int ITOLD, the iteration index on input.
-
-    Input, int ITNEW, the desired iteration index
-    on output.
-
-    Input, float U[, the solution estimate on 
-    iteration ITNEW-1.
-
-    Input/output, float UNEW[, on input, the solution 
-    estimate on iteration ITOLD.  On output, the solution estimate on 
-    iteration ITNEW.
-*/
-{
-  int i;
-  int it;
-  int j;
-
-# pragma omp parallel shared ( dx, dy, f, itnew, itold, nx, ny, u, unew ) private ( i, it, j )
-
-  for ( it = itold + 1; it <= itnew; it++ )
-  {
-/*
-  Save the current estimate.
-*/
-# pragma omp for
-    for ( j = 0; j < ny; j++ )
-    {
-      for ( i = 0; i < nx; i++ )
-      {
-        u[i+j*NX] = unew[i+j*NX];
-      }
-    }
-/*
-  Compute a new estimate.
-*/
-# pragma omp for
-    for ( j = 0; j < ny; j++ )
-    {
-      for ( i = 0; i < nx; i++ )
-      {
-        if ( i == 0 || j == 0 || i == nx - 1 || j == ny - 1 )
-        {
-          unew[i+j*nx] = f[i+j*nx];
-        }
-        else
-        { 
-          unew[i+j*nx] = 0.25 * ( 
-            u[(i-1)+j*nx] + u[i+(j+1)*nx] + u[i+(j-1)*nx] + u[i+1+j*nx] + f[i+j*nx] * dx * dy );
-        }
-      }
-    }
-
-  }
   return;
 }
 /******************************************************************************/
