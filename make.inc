@@ -41,7 +41,7 @@ $(EXE): $(OBJS)
 
 .PHONY: clean prepare run
 clean:
-	rm -rf *.o *~  $(EXE) $(OBJS)
+	rm -rf *.o *~  $(EXE) $(OBJS) $(CSRCS).*
 
 soft-reset-board:
 ifndef PULP_EMU_ADDR

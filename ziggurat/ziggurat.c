@@ -50,8 +50,8 @@ int main ( )
   printf ( "  Number of processors available = %d\n", omp_get_num_procs ( ) );
   printf ( "  Number of threads =              %d\n", omp_get_max_threads ( ) );
 
-  test01 ( );
-  test02 ( );
+  // test01 ( );
+  // test02 ( );
   test03 ( );
   test04 ( );
 /*
@@ -114,6 +114,7 @@ void test01 ( )
   Set up the SEED array, which will be used for both sequential and
   parallel computations.
 */
+# pragma omp target map(tofrom: thread_num)
 # pragma omp parallel
 {
 # pragma omp master 
@@ -124,6 +125,8 @@ void test01 ( )
     printf ( "  The number of threads is %d\n", thread_num );
   }
 }
+  printf ( "  The number of threads is %d\n", thread_num );
+
   seed = ( uint32_t * ) malloc ( thread_num * sizeof ( uint32_t ) );
   result_seq = ( int * ) malloc ( thread_num * sizeof ( int ) );
   result_par = ( int * ) malloc ( thread_num * sizeof ( int ) );
@@ -172,6 +175,7 @@ void test01 ( )
 
   wtime_par = omp_get_wtime ( );
 
+# pragma omp target map(from: result_par[0:thread_num]) map(tofrom: seed[0:thread_num])
 # pragma omp parallel \
   shared ( result_par, seed ) \
   private ( jsr, jsr_value, r, s, thread )
@@ -284,6 +288,7 @@ void test02 ( )
   Set up the SEED array, which will be used for both sequential and
   parallel computations.
 */
+# pragma omp target map(tofrom: thread_num)
 # pragma omp parallel
 {
 # pragma omp master 
@@ -341,6 +346,7 @@ void test02 ( )
 
   wtime_par = omp_get_wtime ( );
 
+# pragma omp target map(from: result_par[0:thread_num]) map(tofrom: seed[0:thread_num])
 # pragma omp parallel \
   shared ( result_par, seed ) \
   private ( jsr, r, r4_value, s, thread )
@@ -461,6 +467,7 @@ void test03 ( )
   Set up the SEED array and the tables, which will be used for both sequential
   and parallel computations.
 */
+# pragma omp target map(tofrom: thread_num)  
 # pragma omp parallel
 {
 # pragma omp master 
@@ -520,6 +527,7 @@ void test03 ( )
 
   wtime_par = omp_get_wtime ( );
 
+# pragma omp target map(from: result_par[0:thread_num]) map(tofrom: seed[0:thread_num])
 # pragma omp parallel \
   shared ( result_par, seed ) \
   private ( jsr, r, r4_value, s, thread )
@@ -641,6 +649,7 @@ void test04 ( )
   Set up the SEED array and the tables, which will be used for both sequential
   and parallel computations.
 */
+# pragma omp target map(tofrom: thread_num)    
 # pragma omp parallel
 {
 # pragma omp master 
@@ -701,6 +710,7 @@ void test04 ( )
 
   wtime_par = omp_get_wtime ( );
 
+# pragma omp target map(from: result_par[0:thread_num]) map(tofrom: seed[0:thread_num])
 # pragma omp parallel \
   shared ( result_par, seed ) \
   private ( jsr, r, r4_value, s, thread )
@@ -765,6 +775,7 @@ void test04 ( )
 }
 /******************************************************************************/
 
+#pragma omp declare target
 float r4_exp ( uint32_t *jsr, uint32_t ke[256], float fe[256], float we[256] )
 
 /******************************************************************************/
@@ -1206,6 +1217,7 @@ uint32_t shr3_seeded ( uint32_t *jsr )
   return value;
 }
 /******************************************************************************/
+#pragma omp end declare target
 
 void timestamp ( void )
 
