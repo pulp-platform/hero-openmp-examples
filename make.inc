@@ -17,7 +17,7 @@ LD      = $(CROSS_COMPILER)-ld
 AS      = $(CROSS_COMPILER)-gcc
 OBJCOPY = $(CROSS_COMPILER)-objcopy
 OBJDUMP = $(CROSS_COMPILER)-objdump
-OPT     =-O2 -g3 -fopenmp -fdump-tree-optimized 
+OPT     =-O2 -g3 -fopenmp
 
 ############## Includes
 INCDIR        += -I. -I$(PULP_SDK_HOME)/install/arm/include -I${PULP_SDK_HOME}/install/include
@@ -41,7 +41,7 @@ $(EXE): $(OBJS)
 
 .PHONY: clean prepare run
 clean:
-	rm -rf *.o *~  $(EXE) $(OBJS) $(CSRCS).*
+	rm -rf *.o *~  $(EXE) $(OBJS) $(CSRCS).* $(EXE).*
 
 soft-reset-board:
 ifndef PULP_EMU_ADDR

@@ -1,12 +1,12 @@
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <stdint.h>
-// #include <omp.h>
-// #include <time.h>   // for time measurements
-// #include <pulp-api.h>
+ //#include <stdlib.h>
+ //#include <stdio.h>
+ //#include <stdint.h>
+ //#include <omp.h>
+ //#include <time.h>   // for time measurements
+ //#include <pulp-api.h>
 
-// struct timespec start, stop;
-// double start_ns, stop_ns, exe_time;
+ struct timespec start, stop;
+ double start_ns, stop_ns, exe_time;
 
 #define N 32
 #define TYPE float
