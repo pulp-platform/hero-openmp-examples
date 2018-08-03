@@ -1,4 +1,4 @@
 ############################ OpenMP Sources ############################
 CSRCS = helloworld.c
-CFLAGS= -v -flto -fdump-tree-optimized 
+CFLAGS= -v 
 -include $(PWD)/../make.inc

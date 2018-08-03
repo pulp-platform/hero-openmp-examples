@@ -11,23 +11,19 @@ endif
 
 EXT_DEF=
 ############## Default compiler and possible option sets
-CROSS_COMPILER=arm-linux-gnueabihf
-CC      = $(CROSS_COMPILER)-gcc
-LD      = $(CROSS_COMPILER)-ld
-AS      = $(CROSS_COMPILER)-gcc
-OBJCOPY = $(CROSS_COMPILER)-objcopy
-OBJDUMP = $(CROSS_COMPILER)-objdump
+CC      = $(CROSS_COMPILER)gcc
+LD      = $(CROSS_COMPILER)ld
+AS      = $(CROSS_COMPILER)gcc
+OBJCOPY = $(CROSS_COMPILER)objcopy
+OBJDUMP = $(CROSS_COMPILER)objdump
 OPT     =-O2 -g3 -fopenmp
 
 ############## Includes
-INCDIR        += -I. -I$(PULP_SDK_HOME)/install/arm/include -I${PULP_SDK_HOME}/install/include
-
-PLP_CFLAGS=-O3 -DPULP -D__PULP__ -DBENCH=1 -DFP_SW_EMUL -DOR10N5 -D__OR10N5__ -DOR1K -D__OR1K__ -D__LIBGOMP__ -DL2_SIZE=262144 -DL1_SIZE=262144 -DNB_PE=8 -DSTACK_SIZE=1024 -DNB_CLUSTER=1 -DPLP_NO_BUILTIN -DPULP_CHIP=CHIP_BIGPULP_Z_7045_O -DPULP_CHIP_FAMILY=CHIP_BIGPULP -DPULP_CHIP_VERSION=0 -DPULP_CORE=CORE_OR1K_V5
-
-COMMON_CFLAGS += ${INCDIR} $(PLP_CFLAGS)
-CFLAGS        += $(OPT) -Wall $(COMMON_CFLAGS) ${EXT_DEF} -fpulp-rab -foffload="$(PLP_CFLAGS)"
+INCDIR        += -I.
+COMMON_CFLAGS += ${INCDIR} -v
+CFLAGS        += $(OPT) -Wall $(COMMON_CFLAGS) ${EXT_DEF}
 ASFLAGS       += $(OPT) $(COMMON_CFLAGS)
-LDFLAGS       += -L$(PULP_SDK_HOME)/install/arm/lib -lpulp-api
+LDFLAGS       +=
 
 ############################ OBJECTS ###################################
 COBJS  = $(CSRCS:.c=.o)
