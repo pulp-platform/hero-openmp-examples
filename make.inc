@@ -37,13 +37,13 @@ $(EXE): $(OBJS)
 
 .PHONY: clean prepare run
 clean:
-	rm -rf *.o *~  $(EXE) $(OBJS) $(EXE).*
+	rm -rf *.o *~  $(EXE) $(OBJS) $(EXE).* offload.bin offload.so
 
 soft-reset-board:
 ifndef PULP_EMU_ADDR
 $(error PULP_EMU_ADDR is not set)
 endif
-	ssh -t $(PULP_EMU_ADDR) 'sudo init_bigpulp.sh'
+	ssh -t $(PULP_EMU_ADDR) 'sudo /hsa/bin/boot-hero'
 
 prepare: $(EXE)
 ifndef PULP_EMU_ADDR
