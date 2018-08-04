@@ -1,5 +1,6 @@
 CSRCS=src/main.c src/sobel.c src/file_operations.c
 EXE=sobel
+CFLAGS=-foffload="-lm"
 LDFLAGS=-lm
 
 IMG_DIR      = imgs
