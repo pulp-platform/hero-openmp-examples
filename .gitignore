@@ -2,3 +2,7 @@
 *.o
 *.exe
 *optimized
+*.c.*
+offload.so
+offload.bin
+imgs_out
