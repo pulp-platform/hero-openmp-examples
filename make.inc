@@ -11,11 +11,11 @@ endif
 
 EXT_DEF=
 ############## Default compiler and possible option sets
-CC      = $(CROSS_COMPILER)gcc
-LD      = $(CROSS_COMPILER)ld
-AS      = $(CROSS_COMPILER)gcc
-OBJCOPY = $(CROSS_COMPILER)objcopy
-OBJDUMP = $(CROSS_COMPILER)objdump
+CC      = $(CROSS_COMPILE)gcc
+LD      = $(CROSS_COMPILE)ld
+AS      = $(CROSS_COMPILE)gcc
+OBJCOPY = $(CROSS_COMPILE)objcopy
+OBJDUMP = $(CROSS_COMPILE)objdump
 OPT     =-O2 -g3 -fopenmp
 
 ############## Includes
