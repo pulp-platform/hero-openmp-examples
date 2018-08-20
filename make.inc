@@ -40,20 +40,20 @@ clean:
 	rm -rf *.o *~  $(EXE) $(OBJS) $(EXE).* offload.bin offload.so
 
 soft-reset-board:
-ifndef PULP_EMU_ADDR
-$(error PULP_EMU_ADDR is not set)
+ifndef HERO_TARGET_HOST
+$(error HERO_TARGET_HOST is not set)
 endif
-	ssh -t $(PULP_EMU_ADDR) 'sudo /hsa/bin/boot-hero'
+	ssh -t $(HERO_TARGET_HOST) 'sudo /hsa/bin/boot-hero'
 
 prepare: $(EXE)
-ifndef PULP_EMU_ADDR
-$(error PULP_EMU_ADDR is not set)
+ifndef HERO_TARGET_HOST
+$(error HERO_TARGET_HOST is not set)
 endif
-	scp $(EXE) $(PULP_EMU_ADDR):~
+	scp $(EXE) $(HERO_TARGET_HOST):$(HERO_TARGET_PATH)/.
 
 run: prepare $(EXE)
-ifeq ($(call ifndef_any_of,PULP_EMU_ADDR PULP_EMU_SHARE_DIR),)
-	ssh -t $(PULP_EMU_ADDR) 'export LD_LIBRARY_PATH='"'$(PULP_EMU_SHARE_DIR)/lib'":"'$(PULP_EMU_SHARE_DIR)/arm-linux-gnueabihf/lib'"'; ./$(EXE) $(RUN_ARGS)'
+ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH HERO_TARGET_PATH_LIB),)
+	ssh -t $(HERO_TARGET_HOST) 'export LD_LIBRARY_PATH='"'$(HERO_TARGET_PATH_LIB)'"'; cd ${HERO_TARGET_PATH}; ./$(EXE) $(RUN_ARGS)'
 else
-$(error PULP_EMU_ADDR and/or PULP_EMU_SHARE_DIR is not set)
+$(error HERO_TARGET_HOST and/or HERO_TARGET_PATH is not set)
 endif
