@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <omp.h>
 #include <time.h>   // for time measurements
-#include <pulp-api.h>
+#include <hero-target.h>
+
+#define ARM_CLK_FREQ_MHZ 799
 
 struct timespec start, stop;
 double start_ns, stop_ns, exe_time;
@@ -67,20 +69,23 @@ int main(int argc, char *argv[])
     {
         printf("MatMul DMA! Width %d Height %d, a %x, b %x, c %x\n", (int) width, (int) height, (int) a, (int) b, (int) c);
         clock_gettime(CLOCK_REALTIME,&start);
-        #pragma omp target map(to: a[0:width*height], b[0:width*height]) map(from: c[0:width*height])
+        #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height]) map(from: c[0:width*height])
         {
-            uint8_t *local_space = (uint8_t *)pulp_l1malloc(3*width*height*sizeof(uint32_t));
+            uint8_t *local_space = (uint8_t *)hero_l1malloc(3*width*height*sizeof(uint32_t));
             uint32_t *local_a = (uint32_t *) &local_space[0*width*height*sizeof(uint32_t)];
             uint32_t *local_b = (uint32_t *) &local_space[1*width*height*sizeof(uint32_t)];
             uint32_t *local_c = (uint32_t *) &local_space[2*width*height*sizeof(uint32_t)];
 
-            pulp_memcpy(local_a, a, width*height*sizeof(uint32_t));
-            pulp_memcpy(local_b, b, width*height*sizeof(uint32_t));
+            hero_dma_job_t dma0 = hero_dma_memcpy_async(local_a, a, width*height*sizeof(uint32_t));
+            hero_dma_job_t dma1 = hero_dma_memcpy_async(local_b, b, width*height*sizeof(uint32_t));
+
+            hero_dma_wait(dma0);
+            hero_dma_wait(dma1);
 
             matmul(local_a, local_b, local_c, width, height);
 
-            pulp_memcpy(c, local_c, width*height*sizeof(uint32_t));
-            pulp_l1free(local_space);
+            hero_dma_memcpy(c, local_c, width*height*sizeof(uint32_t));
+            hero_l1free(local_space);
         }
         clock_gettime(CLOCK_REALTIME,&stop);        
         start_ns = ((double)(start.tv_sec))*1000000000 + (double)(start.tv_nsec);

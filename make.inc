@@ -19,11 +19,11 @@ OBJDUMP = $(CROSS_COMPILE)objdump
 OPT     =-O2 -g3 -fopenmp
 
 ############## Includes
-INCDIR        += -I.
+INCDIR        += -I${HERO_SUPPORT_DIR}/libhero-target/inc -I.
 COMMON_CFLAGS += ${INCDIR} -v
 CFLAGS        += $(OPT) -Wall $(COMMON_CFLAGS) ${EXT_DEF}
 ASFLAGS       += $(OPT) $(COMMON_CFLAGS)
-LDFLAGS       +=
+LDFLAGS       += -L${HERO_SUPPORT_DIR}/libhero-target/lib -lhero-target
 
 ############################ OBJECTS ###################################
 COBJS  = $(CSRCS:.c=.o)
