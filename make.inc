@@ -49,11 +49,11 @@ prepare: $(EXE)
 ifndef HERO_TARGET_HOST
 $(error HERO_TARGET_HOST is not set)
 endif
-	scp $(EXE) $(HERO_TARGET_HOST):$(HERO_TARGET_PATH)/.
+	scp $(EXE) $(HERO_TARGET_HOST):$(HERO_TARGET_PATH_APPS)/.
 
 run: prepare $(EXE)
-ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH HERO_TARGET_PATH_LIB),)
-	ssh -t $(HERO_TARGET_HOST) 'export LD_LIBRARY_PATH='"'$(HERO_TARGET_PATH_LIB)'"'; cd ${HERO_TARGET_PATH}; ./$(EXE) $(RUN_ARGS)'
+ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_APPS HERO_TARGET_PATH_LIB),)
+	ssh -t $(HERO_TARGET_HOST) 'export LD_LIBRARY_PATH='"'$(HERO_TARGET_PATH_LIB)'"'; cd ${HERO_TARGET_PATH_APPS}; ./$(EXE) $(RUN_ARGS)'
 else
-$(error HERO_TARGET_HOST and/or HERO_TARGET_PATH is not set)
+$(error HERO_TARGET_HOST and/or HERO_TARGET_PATH_APPS is not set)
 endif

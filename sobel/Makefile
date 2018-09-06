@@ -13,10 +13,11 @@ RUN_ARGS=$(IMG_DIR)/$(IMAGE_NAME).rgb $(IMG_DIR)/$(IMAGE_NAME).gray 512x512 -g $
 
 copyout:
 	convert $(IMG_DIR)/$(IMAGE_NAME).png $(IMG_DIR)/$(IMAGE_NAME).rgb
-	rsync -rctacvzP $(IMG_DIR) $(HERO_TARGET_HOST):~
+	scp -r ${IMG_DIR} $(HERO_TARGET_HOST):${HERO_TARGET_PATH_APPS}
 
 copyin:
-	rsync -rctacvzP  $(HERO_TARGET_HOST):~/$(IMG_DIR)/* $(IMG_DIR_OUT)
+	mkdir -p ${IMG_DIR_OUT}
+	scp -r $(HERO_TARGET_HOST):${HERO_TARGET_PATH_APPS}/${IMG_DIR}/* ${IMG_DIR_OUT}/.
 	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME).gray $(IMG_DIR_OUT)/$(IMAGE_NAME).png
 	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME)_gray.gray $(IMG_DIR_OUT)/$(IMAGE_NAME)_gray.png
 	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME)_h.gray $(IMG_DIR_OUT)/$(IMAGE_NAME)_h.png
