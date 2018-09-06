@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <omp.h>
+// #include <omp.h>
 #include <time.h>   // for time measurements
 #include <hero-target.h>
 
@@ -37,8 +37,8 @@ void mat_print(uint32_t * __restrict__ a,  uint32_t width, uint32_t height)
 
 int main(int argc, char *argv[])
 {    
-    int width  = 32;
-    int height = 32;
+    int width  = 64;
+    int height = 64;
     uint32_t *a;
     uint32_t *b;
     uint32_t *c;
@@ -69,22 +69,22 @@ int main(int argc, char *argv[])
     {
         printf("MatMul DMA! Width %d Height %d, a %x, b %x, c %x\n", (int) width, (int) height, (int) a, (int) b, (int) c);
         clock_gettime(CLOCK_REALTIME,&start);
-        #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height]) map(from: c[0:width*height])
+        #pragma omp target map(to: a[0:width*height], b[0:width*height]) map(from: c[0:width*height])
         {
             uint8_t *local_space = (uint8_t *)hero_l1malloc(3*width*height*sizeof(uint32_t));
             uint32_t *local_a = (uint32_t *) &local_space[0*width*height*sizeof(uint32_t)];
             uint32_t *local_b = (uint32_t *) &local_space[1*width*height*sizeof(uint32_t)];
             uint32_t *local_c = (uint32_t *) &local_space[2*width*height*sizeof(uint32_t)];
+            uint32_t local_w = width;
+            uint32_t local_h = height;
 
-            hero_dma_job_t dma0 = hero_dma_memcpy_async(local_a, a, width*height*sizeof(uint32_t));
-            hero_dma_job_t dma1 = hero_dma_memcpy_async(local_b, b, width*height*sizeof(uint32_t));
-
+            hero_dma_job_t dma0 = hero_dma_memcpy_async(local_a, a, local_w*local_h*sizeof(uint32_t));
+            hero_dma_job_t dma1 = hero_dma_memcpy_async(local_b, b, local_w*local_h*sizeof(uint32_t));
             hero_dma_wait(dma0);
             hero_dma_wait(dma1);
-
-            matmul(local_a, local_b, local_c, width, height);
-
-            hero_dma_memcpy(c, local_c, width*height*sizeof(uint32_t));
+            
+            matmul(local_a, local_b, local_c, local_w, local_h);
+            hero_dma_memcpy(c, local_c, local_w*local_h*sizeof(uint32_t));
             hero_l1free(local_space);
         }
         clock_gettime(CLOCK_REALTIME,&stop);        
@@ -93,8 +93,8 @@ int main(int argc, char *argv[])
         exe_time = (stop_ns - start_ns)/1000000000;
         printf("Exec Time [host cycles] = %.0f (%f s)\n", exe_time*ARM_CLK_FREQ_MHZ*1000000, exe_time);
 
+        /* Golden Verion */
         matmul(a, b, g, width, height);
-        //mat_print(g, width, height);
 
         /*Checksum */
         for (int i=0; i<width; i++) {
@@ -128,7 +128,9 @@ int main(int argc, char *argv[])
         exe_time = (stop_ns - start_ns)/1000000000;
         printf("Exec Time [host cycles] = %.0f (%f s)\n", exe_time*ARM_CLK_FREQ_MHZ*1000000, exe_time);
 
+        /* Golden Verion */
         matmul(a, b, g, width, height);
+
         /*Checksum */
         for (int i=0; i<width; i++){
             for (int  j=0; j<height; j++){
