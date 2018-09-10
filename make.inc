@@ -19,11 +19,11 @@ OBJDUMP = $(CROSS_COMPILE)objdump
 OPT     =-O2 -g3 -fopenmp
 # 
 ############## Includes
-INCDIR        = -include ${PULP_SDK_INSTALL}/hero/hero-z-7045/cl_config.h -I${HERO_PULP_INC_DIR}/archi/chips/bigpulp -I${HERO_PULP_INC_DIR} -I${HERO_SUPPORT_DIR}/libhero-target/inc -I. 
+INCDIR        = -include ${PULP_SDK_INSTALL}/hero/hero-z-7045/cl_config.h -I${HERO_PULP_INC_DIR}/archi/chips/bigpulp -I${HERO_PULP_INC_DIR} -I${HERO_SDK_DIR}/libhero-target/inc -I. 
 COMMON_CFLAGS += ${INCDIR} -v
 CFLAGS        += $(OPT) -Wall -DPLATFORM=${PLATFORM} $(COMMON_CFLAGS) ${EXT_DEF}
 ASFLAGS       += $(OPT) $(COMMON_CFLAGS)
-LDFLAGS       += -L${HERO_SUPPORT_DIR}/libhero-target/lib -lhero-target
+LDFLAGS       += -L${HERO_SDK_DIR}/libhero-target/lib -lhero-target
 
 ############################ OBJECTS ###################################
 COBJS  = $(CSRCS:.c=.o)
