@@ -23,6 +23,7 @@ INCDIR        = -include ${PULP_SDK_INSTALL}/hero/hero-z-7045/cl_config.h \
                     -I${HERO_PULP_INC_DIR}/archi/chips/bigpulp \
                     -I${HERO_PULP_INC_DIR} \
                     -I${HERO_SDK_DIR}/libhero-target/inc \
+                    -I../common \
                     -I.
 COMMON_CFLAGS += ${INCDIR} -v
 CFLAGS        += $(OPT) -Wall -DPLATFORM=${PLATFORM} $(COMMON_CFLAGS) ${EXT_DEF}
