@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     uint32_t * b_local = (uint32_t *)hero_l1malloc(width*height*sizeof(uint32_t));
     uint32_t * c_local = (uint32_t *)hero_l1malloc(width*height*sizeof(uint32_t));
     if ( (a_local == NULL) || (b_local == NULL) || (c_local == NULL) ) {
-      printf("ERROR: Memory allocation failed!");
+      printf("ERROR: Memory allocation failed!\n");
     }
 
     hero_dma_job_t dma0 = hero_dma_memcpy_async(a_local, a, width*height*sizeof(uint32_t));
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     hero_dma_wait(dma0);
     hero_dma_wait(dma1);
 
-    #pragma omp parallel for collapse(2) firstprivate(a_local, b_local, c_local, width, height) //num_threads(7)
+    #pragma omp parallel for collapse(2) firstprivate(a_local, b_local, c_local, width, height)
       for (int i=0; i<width; i++) {
         for (int j=0; j<height; j++) {
           int sum = 0;
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
         uint32_t * b_local = (uint32_t *)hero_l1malloc(width_local*height_local*sizeof(uint32_t));
         uint32_t * c_local = (uint32_t *)hero_l1malloc(width_local*height_local*sizeof(uint32_t));
         if ( (a_local == NULL) || (b_local == NULL) || (c_local == NULL) ) {
-          printf("ERROR: Memory allocation failed!");
+          printf("ERROR: Memory allocation failed!\n");
         }
 
         hero_dma_job_t dma0 = hero_dma_memcpy_async(a_local, a, width_local*height_local*sizeof(uint32_t));
@@ -245,26 +245,6 @@ int main(int argc, char *argv[])
   bench_stop();
   compare_matrices(c, d, width, height);
   memset((void *)c, 0, (size_t)(width*height));
-
-#if 0
-  bench_start("PULP: Intrinsics");
-  #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
-  {
-
-    signed short a __attribute__((vector_size (4)));
-    signed short b __attribute__((vector_size (4)));
-    signed short c __attribute__((vector_size (4)));
-
-    //hero_sdotsp2(a, b, c);
-
-  }
-  bench_stop();
-
-  bench_start("PULP: Parallel, SVM, double-buffered DMA");
-  bench_stop();
-  compare_matrices(c, d, width, height);
-  memset((void *)c, 0, (size_t)(width*height));
-#endif
 
   // free memory
   free(a);
