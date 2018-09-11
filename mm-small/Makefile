@@ -1,2 +1,2 @@
-CSRCS = mm-versions.c
+CSRCS = mm-small.c
 -include $(PWD)/../make.inc
