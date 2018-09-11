@@ -25,18 +25,25 @@ int main(int argc, char *argv[])
 {
   printf("HERO matrix multiplication started.\n");
 
-  int width  = 128;
-  int height = width;
+  // Global variables
+  struct timespec start, stop;
+  double exe_time;
+  unsigned host_clk_freq_mhz = 0;
 
   uint32_t *a;
   uint32_t *b;
   uint32_t *c;
   uint32_t *d;
 
+  int width = 128;
   if( argc > 1 ) {
-    width  = atoi(argv[1]);
-    height = atoi(argv[1]);
+    width = atoi(argv[1]);
   }
+  if (width > 140) {
+    printf("WARNING: widths greater than 140 entries not supported, falling back to 128.\n");
+    width = 128;
+  }
+  int height = width;
 
   // Allocate memory
   a = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
