@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
   bench_start("Host");
   #pragma omp parallel firstprivate(a, b, d, width, height)
   {
+    #pragma omp for collapse(2)
     for (int i=0; i<width; i++) {
       for (int j=0; j<height; j++) {
         int sum = 0;
