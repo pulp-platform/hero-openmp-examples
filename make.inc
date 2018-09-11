@@ -6,7 +6,7 @@ ifndef_any_of = $(filter undefined,$(foreach v,$(1),$(origin $(v))))
 
 ############## Name of output executable file
 ifndef EXE
-EXE=app.exe
+EXE=$(shell basename $(PWD))
 endif
 
 EXT_DEF=
@@ -41,7 +41,7 @@ $(EXE): $(OBJS)
 
 .PHONY: clean prepare run
 clean:
-	rm -rf *.o *~  $(EXE) $(OBJS) $(EXE).* offload.bin offload.so
+	rm -rf *.o *~ $(EXE) $(OBJS) offload.bin offload.so
 
 soft-reset-board:
 ifndef HERO_TARGET_HOST
