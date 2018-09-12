@@ -6,17 +6,8 @@
 #include <time.h>         // for time measurements
 #include <unistd.h>
 #include <errno.h>        // for error codes
+#include "bench.h"
 #include <hero-target.h>
-
-void get_exe_time(struct timespec * start, struct timespec * stop, double * exe_time)
-{
-  double start_ns, stop_ns;
-
-  start_ns = ((double)(start->tv_sec))*1000000000 + (double)(start->tv_nsec);
-  stop_ns  = ((double)(stop->tv_sec))*1000000000  + (double)(stop->tv_nsec);
-
-  *exe_time = (stop_ns - start_ns)/1000000000;
-}
 
 void compare_matrices(uint32_t* a, uint32_t* b, int width, int height)
 {
@@ -33,11 +24,6 @@ void compare_matrices(uint32_t* a, uint32_t* b, int width, int height)
 int main(int argc, char *argv[])
 {
   printf("HERO matrix multiplication started.\n");
-
-  // Global variables
-  struct timespec start, stop;
-  double exe_time;
-  unsigned host_clk_freq_mhz = 0;
 
   int width  = 128;
   int height = width;
@@ -73,19 +59,6 @@ int main(int argc, char *argv[])
   memset((void *)c, 0, (size_t)(width*height));
   memset((void *)d, 0, (size_t)(width*height));
 
-  // Get host clock frequency
-  if( access("/sys/devices/system/cpu/cpufreq/policy0/cpuinfo_cur_freq", F_OK ) != -1 ) {
-    char host_clk_freq_khz_string[20];
-    FILE *fp;
-
-    if((fp = fopen("/sys/devices/system/cpu/cpufreq/policy0/cpuinfo_cur_freq", "r")) == NULL)
-      printf("ERROR: Could not open sysfs.\n");
-    else if ( fgets(host_clk_freq_khz_string, 20, fp) != NULL)
-      host_clk_freq_mhz = (strtoul(host_clk_freq_khz_string, NULL, 10)+1)/1000;
-
-    fclose(fp);
-  }
-
   /*
    * Make sure PULP is ready - speeds up the first target
    *
@@ -103,10 +76,8 @@ int main(int argc, char *argv[])
   /*
    * Execute on host
    */
-  printf("\nHost Execution\n");
 
-  clock_gettime(CLOCK_REALTIME,&start);
-
+  bench_start("Host");
   #pragma omp parallel firstprivate(a, b, d, width, height)
   {
     for (int i=0; i<width; i++) {
@@ -118,18 +89,13 @@ int main(int argc, char *argv[])
       }
     }
   }
-
-  clock_gettime(CLOCK_REALTIME,&stop);
-  get_exe_time(&start, &stop, &exe_time);
-  printf("Execution time [host cycles] = %.0f (%f s)\n", exe_time*host_clk_freq_mhz*1000000, exe_time);
+  bench_stop();
 
   /*
-   * Excute on PULP - Single-threaded, copy-based, no DMA
+   * Execute on PULP
    */
-  printf("\nPULP Execution: Single-threaded, copy-based, no DMA\n");
 
-  clock_gettime(CLOCK_REALTIME,&start);
-
+  bench_start("PULP: Single-threaded, copy-based, no DMA");
   #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
     for (int i=0; i<width; i++) {
@@ -141,21 +107,11 @@ int main(int argc, char *argv[])
       }
     }
   }
-
-  clock_gettime(CLOCK_REALTIME,&stop);
-  get_exe_time(&start, &stop, &exe_time);
-  printf("Execution time, entire offload [host cycles] = %.0f (%f s)\n", exe_time*host_clk_freq_mhz*1000000, exe_time);
-
+  bench_stop();
   compare_matrices(c, d, width, height);
   memset((void *)c, 0, (size_t)(width*height));
 
-  /*
-   * Excute on PULP - Parallel, copy-based, no DMA
-   */
-  printf("\nPULP Execution: Parallel, copy-based, no DMA\n");
-
-  clock_gettime(CLOCK_REALTIME,&start);
-
+  bench_start("PULP: Parallel, copy-based, no DMA");
   #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
 
@@ -169,21 +125,11 @@ int main(int argc, char *argv[])
         }
       }
   }
-
-  clock_gettime(CLOCK_REALTIME,&stop);
-  get_exe_time(&start, &stop, &exe_time);
-  printf("Execution time, entire offload [host cycles] = %.0f (%f s)\n", exe_time*host_clk_freq_mhz*1000000, exe_time);
-
+  bench_stop();
   compare_matrices(c, d, width, height);
   memset((void *)c, 0, (size_t)(width*height));
 
-  /*
-   * Excute on PULP - Parallel, copy-based, DMA
-   */
-  printf("\nPULP Execution: Parallel, copy-based, DMA\n");
-
-  clock_gettime(CLOCK_REALTIME,&start);
-
+  bench_start("PULP: Parallel, copy-based, DMA");
   #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
     uint32_t * a_local = (uint32_t *)hero_l1malloc(width*height*sizeof(uint32_t));
@@ -214,11 +160,7 @@ int main(int argc, char *argv[])
     hero_l1free(b_local);
     hero_l1free(c_local);
   }
-
-  clock_gettime(CLOCK_REALTIME,&stop);
-  get_exe_time(&start, &stop, &exe_time);
-  printf("Execution time, entire offload [host cycles] = %.0f (%f s)\n", exe_time*host_clk_freq_mhz*1000000, exe_time);
-
+  bench_stop();
   compare_matrices(c, d, width, height);
   memset((void *)c, 0, (size_t)(width*height));
 
@@ -234,13 +176,7 @@ int main(int argc, char *argv[])
   }
   tmp_1 = tmp_2;
 
-  /*
-   * Excute on PULP - Parallel, SVM, DMA
-   */
-  printf("\nPULP Execution: Parallel, SVM, DMA\n");
-
-  clock_gettime(CLOCK_REALTIME,&start);
-
+  bench_start("PULP: Parallel, SVM, DMA");
   #pragma omp target device(0) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
     unsigned sync;
@@ -306,24 +242,12 @@ int main(int argc, char *argv[])
       } // else ... omp_get_thread_num() == 0
     } // parallel
   } // target
-
-  clock_gettime(CLOCK_REALTIME,&stop);
-  get_exe_time(&start, &stop, &exe_time);
-  printf("Execution time, entire offload [host cycles] = %.0f (%f s)\n",
-    exe_time*host_clk_freq_mhz*1000000, exe_time);
-
+  bench_stop();
   compare_matrices(c, d, width, height);
   memset((void *)c, 0, (size_t)(width*height));
 
-
-  /*
-   * Excute on PULP - Parallel, copy-based, no DMA
-   */
-  printf("\nPULP Execution: Intrinsics\n");
-
-  clock_gettime(CLOCK_REALTIME,&start);
-
 #if 0
+  bench_start("PULP: Intrinsics");
   #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
 
@@ -334,22 +258,10 @@ int main(int argc, char *argv[])
     //hero_sdotsp2(a, b, c);
 
   }
+  bench_stop();
 
-  clock_gettime(CLOCK_REALTIME,&stop);
-  get_exe_time(&start, &stop, &exe_time);
-  printf("Execution time, entire offload [host cycles] = %.0f (%f s)\n", exe_time*host_clk_freq_mhz*1000000, exe_time);
-
-  /*
-   * Excute on PULP - Parallel, SVM, double-buffered DMA
-   */
-  printf("PULP Execution: Parallel, SVM, double-buffered DMA\n");
-
-  clock_gettime(CLOCK_REALTIME,&start);
-
-  clock_gettime(CLOCK_REALTIME,&stop);
-  get_exe_time(&start, &stop, &exe_time);
-  printf("Execution time, entire offload [host cycles] = %.0f (%f s)\n", exe_time*host_clk_freq_mhz*1000000, exe_time);
-
+  bench_start("PULP: Parallel, SVM, double-buffered DMA");
+  bench_stop();
   compare_matrices(c, d, width, height);
   memset((void *)c, 0, (size_t)(width*height));
 #endif

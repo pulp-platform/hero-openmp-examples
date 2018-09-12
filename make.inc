@@ -6,7 +6,7 @@ ifndef_any_of = $(filter undefined,$(foreach v,$(1),$(origin $(v))))
 
 ############## Name of output executable file
 ifndef EXE
-EXE=app.exe
+EXE=$(shell basename $(PWD))
 endif
 
 EXT_DEF=
@@ -17,9 +17,14 @@ AS      = $(CROSS_COMPILE)gcc
 OBJCOPY = $(CROSS_COMPILE)objcopy
 OBJDUMP = $(CROSS_COMPILE)objdump
 OPT     =-O2 -g3 -fopenmp
-# 
+#
 ############## Includes
-INCDIR        = -include ${PULP_SDK_INSTALL}/hero/hero-z-7045/cl_config.h -I${HERO_PULP_INC_DIR}/archi/chips/bigpulp -I${HERO_PULP_INC_DIR} -I${HERO_SDK_DIR}/libhero-target/inc -I. 
+INCDIR        = -include ${PULP_SDK_INSTALL}/hero/hero-z-7045/cl_config.h \
+                    -I${HERO_PULP_INC_DIR}/archi/chips/bigpulp \
+                    -I${HERO_PULP_INC_DIR} \
+                    -I${HERO_SDK_DIR}/libhero-target/inc \
+                    -I../common \
+                    -I.
 COMMON_CFLAGS += ${INCDIR} -v
 CFLAGS        += $(OPT) -Wall -DPLATFORM=${PLATFORM} $(COMMON_CFLAGS) ${EXT_DEF}
 ASFLAGS       += $(OPT) $(COMMON_CFLAGS)
@@ -37,7 +42,7 @@ $(EXE): $(OBJS)
 
 .PHONY: clean prepare run
 clean:
-	rm -rf *.o *~  $(EXE) $(OBJS) $(EXE).* offload.bin offload.so
+	rm -rf *.o *~ $(EXE) $(OBJS) offload.bin offload.so
 
 soft-reset-board:
 ifndef HERO_TARGET_HOST

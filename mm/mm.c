@@ -3,6 +3,7 @@
 #include <stdint.h>
 // #include <omp.h>
 #include <time.h>   // for time measurements
+#include "bench.h"
 #include <hero-target.h>
 
 #define ARM_CLK_FREQ_MHZ 799
@@ -67,8 +68,8 @@ int main(int argc, char *argv[])
 
     for(int iter=0; iter < 4; ++iter)
     {
-        printf("MatMul DMA! Width %d Height %d, a %x, b %x, c %x\n", (int) width, (int) height, (int) a, (int) b, (int) c);
-        clock_gettime(CLOCK_REALTIME,&start);
+        bench_start("MatMul DMA! Width %d Height %d, a 0x%08x, b 0x%08x, c 0x%08x\n",
+            (int)width, (int)height, (unsigned)a, (unsigned)b, (unsigned)c);
         #pragma omp target map(to: a[0:width*height], b[0:width*height]) map(from: c[0:width*height])
         {
             uint8_t *local_space = (uint8_t *)hero_l1malloc(3*width*height*sizeof(uint32_t));
@@ -82,16 +83,12 @@ int main(int argc, char *argv[])
             hero_dma_job_t dma1 = hero_dma_memcpy_async(local_b, b, local_w*local_h*sizeof(uint32_t));
             hero_dma_wait(dma0);
             hero_dma_wait(dma1);
-            
+
             matmul(local_a, local_b, local_c, local_w, local_h);
             hero_dma_memcpy(c, local_c, local_w*local_h*sizeof(uint32_t));
             hero_l1free(local_space);
         }
-        clock_gettime(CLOCK_REALTIME,&stop);        
-        start_ns = ((double)(start.tv_sec))*1000000000 + (double)(start.tv_nsec);
-        stop_ns  = ((double)(stop.tv_sec))*1000000000  + (double)(stop.tv_nsec);
-        exe_time = (stop_ns - start_ns)/1000000000;
-        printf("Exec Time [host cycles] = %.0f (%f s)\n", exe_time*ARM_CLK_FREQ_MHZ*1000000, exe_time);
+        bench_stop();
 
         /* Golden Verion */
         matmul(a, b, g, width, height);
@@ -116,17 +113,13 @@ int main(int argc, char *argv[])
 
     for(int iter=0; iter < 4; ++iter)
     {
-        printf("MatMul no DMA! Width %d Height %d, a %x, b %x, c %x\n", (int) width, (int) height, (int) a, (int) b, (int) c);
-        clock_gettime(CLOCK_REALTIME,&start);
+        bench_start("MatMul no DMA! Width %d Height %d, a 0x%08x, b 0x%08x, c 0x%08x\n",
+            (int)width, (int)height, (unsigned)a, (unsigned)b, (unsigned)c);
         #pragma omp target map(to: a[0:width*height], b[0:width*height]) map(from: c[0:width*height])
         {
             matmul(a, b, c, width, height);
         }
-        clock_gettime(CLOCK_REALTIME,&stop);        
-        start_ns = ((double)(start.tv_sec))*1000000000 + (double)(start.tv_nsec);
-        stop_ns  = ((double)(stop.tv_sec))*1000000000  + (double)(stop.tv_nsec);
-        exe_time = (stop_ns - start_ns)/1000000000;
-        printf("Exec Time [host cycles] = %.0f (%f s)\n", exe_time*ARM_CLK_FREQ_MHZ*1000000, exe_time);
+        bench_stop();
 
         /* Golden Verion */
         matmul(a, b, g, width, height);

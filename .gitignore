@@ -1,6 +1,5 @@
 *~
 *.o
-*.exe
 *optimized
 *.c.*
 offload.so
