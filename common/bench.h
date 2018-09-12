@@ -5,7 +5,7 @@
 #include <time.h>     // clock_gettime(), timespec
 #include <unistd.h>   // access()
 
-static volatile struct timespec bench_ts_start, bench_ts_stop;
+static struct timespec bench_ts_start, bench_ts_stop;
 
 /**
  * Start benchmark measurement: print label and capture start time.
