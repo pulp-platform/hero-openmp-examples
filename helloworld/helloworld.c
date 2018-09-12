@@ -1,9 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <omp.h>
 #include <time.h>
-//#include <pulp-api.h>
+//#include <omp.h>
 
 struct timespec start, stop;
 double start_ns, stop_ns, exe_time;
