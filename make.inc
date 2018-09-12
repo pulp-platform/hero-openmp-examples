@@ -50,7 +50,7 @@ $(error HERO_TARGET_HOST is not set)
 endif
 	ssh -t $(HERO_TARGET_HOST) 'sudo /hsa/bin/boot-hero'
 
-prepare: $(EXE)
+prepare:: $(EXE)
 ifndef HERO_TARGET_HOST
 $(error HERO_TARGET_HOST is not set)
 endif
