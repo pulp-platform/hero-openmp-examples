@@ -232,11 +232,12 @@ int main(int argc, char *argv[])
         vertex * vertices_local         = (vertex *)hero_tryread((unsigned int *)&vertices);
 
         #pragma omp parallel firstprivate(vertices_local, n_vertices_local) \
-          shared(n_successors_max_local)
+          shared(n_successors_max_local) num_threads(1)
         {
           unsigned n_successors_tmp = 0;
 
-          #pragma omp for reduction(max: n_successors_max_local)
+          //#pragma omp for reduction(max: n_successors_max_local)
+          #pragma omp for
           for (unsigned i=0; i<n_vertices_local; i++) {
             n_successors_tmp = hero_tryread((unsigned *)(&(vertices_local[i].n_successors)));
 
@@ -290,9 +291,10 @@ int main(int argc, char *argv[])
         vertex * vertices_local   = (vertex *)hero_tryread((unsigned int *)&vertices);
 
         #pragma omp parallel firstprivate(vertices_local, n_vertices_local) \
-          shared(n_edges_local)
+          shared(n_edges_local) num_threads(1)
         {
-          #pragma omp for reduction(+:n_edges_local)
+          //#pragma omp for reduction(+:n_edges_local)
+          #pragma omp for
           for (unsigned i=0; i<n_vertices_local; i++) {
             n_edges_local += hero_tryread((unsigned *)(&(vertices_local[i].n_successors)));
           }
@@ -350,7 +352,7 @@ int main(int argc, char *argv[])
         hero_dma_memcpy((void *)n_predecessors_local, (void *)n_predecessors, n_vertices*sizeof(unsigned));
 
         #pragma omp parallel firstprivate(vertices_local, n_vertices_local, n_predecessors_local) \
-          shared(n_predecessors_max_local)
+          shared(n_predecessors_max_local) num_threads(1)
         {
           unsigned n_successors_tmp = 0;
           unsigned vertex_id_tmp    = 0;
@@ -362,13 +364,14 @@ int main(int argc, char *argv[])
             for (unsigned j=0; j<n_successors_tmp; j++) {
               hero_tryread((unsigned *)&vertices_local[i].successors[j]);
               vertex_id_tmp = hero_tryread((unsigned *)&(vertices[i].successors[j]->vertex_id));
-              #pragma omp atomic update
+              //#pragma omp atomic update
               n_predecessors_local[vertex_id_tmp] += 1;
             }
           }
 
           // get the max
-          #pragma omp for reduction(max: n_predecessors_max_local)
+          //#pragma omp for reduction(max: n_predecessors_max_local)
+          #pragma omp for
           for (unsigned i=0; i < n_vertices_local; i++) {
             if (n_predecessors_local[i] > n_predecessors_max_local)
               n_predecessors_max_local = n_predecessors_local[i];
