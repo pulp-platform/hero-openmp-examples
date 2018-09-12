@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
    */
   unsigned tmp_1 = 1;
   unsigned tmp_2 = 2;
-  #pragma omp target device(1) map(to: tmp_1) map(from: tmp_2)
+  #pragma omp target device(BIGPULP_MEMCPY) map(to: tmp_1) map(from: tmp_2)
   {
     tmp_2 = tmp_1;
   }
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
    */
 
   bench_start("PULP: Single-threaded, copy-based, no DMA");
-  #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
+  #pragma omp target device(BIGPULP_MEMCPY) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
     for (int i=0; i<width; i++) {
       for (int j=0; j<height; j++) {
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
   memset((void *)c, 0, (size_t)(width*height));
 
   bench_start("PULP: Parallel, copy-based, no DMA");
-  #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
+  #pragma omp target device(BIGPULP_MEMCPY) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
 
     #pragma omp parallel for collapse(2) firstprivate(a, b, c, width, height)
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
   memset((void *)c, 0, (size_t)(width*height));
 
   bench_start("PULP: Parallel, copy-based, DMA");
-  #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
+  #pragma omp target device(BIGPULP_MEMCPY) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
     uint32_t * a_local = (uint32_t *)hero_l1malloc(width*height*sizeof(uint32_t));
     uint32_t * b_local = (uint32_t *)hero_l1malloc(width*height*sizeof(uint32_t));
@@ -170,14 +170,14 @@ int main(int argc, char *argv[])
    * Actually, we should not use both devices at the same time as it is not safe. OpenMP will load
    * or boot both of them. But in reality only one accelerator is there.
    */
-  #pragma omp target device(0) map(to: tmp_1) map(from: tmp_2)
+  #pragma omp target device(BIGPULP_SVM) map(to: tmp_1) map(from: tmp_2)
   {
     hero_trywrite(&tmp_2, hero_tryread(&tmp_1));
   }
   tmp_1 = tmp_2;
 
   bench_start("PULP: Parallel, SVM, DMA");
-  #pragma omp target device(0) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
+  #pragma omp target device(BIGPULP_SVM) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
     unsigned sync;
 

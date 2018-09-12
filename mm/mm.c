@@ -6,8 +6,6 @@
 #include "bench.h"
 #include <hero-target.h>
 
-#define ARM_CLK_FREQ_MHZ 799
-
 struct timespec start, stop;
 double start_ns, stop_ns, exe_time;
 
@@ -65,6 +63,8 @@ int main(int argc, char *argv[])
             g[i*width+j] = 0;
         }
     }
+
+    omp_set_default_device(BIGPULP_MEMCPY);
 
     for(int iter=0; iter < 4; ++iter)
     {

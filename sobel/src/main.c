@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <hero-target.h>
 
 #include "macros.h"
 #include "sobel.h"
 #include "file_operations.h"
+
 
 #define ARGS_NEEDED 4
 
@@ -101,6 +103,7 @@ int main(int argc, char *argv[]) {
     sobel_v_res = malloc(sizeof(byte) * gray_size);
     contour_img = malloc(sizeof(byte) * gray_size);
 
+    omp_set_default_device(BIGPULP_MEMCPY);
     #pragma omp target map(to: rgb[0:rgb_size], width, height) map(from: gray[0:gray_size], sobel_h_res[0:gray_size], sobel_v_res[0:gray_size], contour_img[0:gray_size])
     sobelFilter(rgb, gray, sobel_h_res, sobel_v_res, contour_img, width, height);
 

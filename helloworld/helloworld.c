@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+#include <hero-target.h>
 //#include <omp.h>
 
 struct timespec start, stop;
@@ -16,7 +17,9 @@ void helloworld ()
 #pragma omp end declare target
 
 int main(int argc, char *argv[])
-{    
+{
+	omp_set_default_device(BIGPULP_MEMCPY);
+
 	#pragma omp target
 	helloworld();
 
