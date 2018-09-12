@@ -1,4 +1,6 @@
+#pragma omp declare target
 #include "aes.h"
+#pragma omp end declare target
 #include "bench.h"
 #include "hero-target.h"
 #include <errno.h>        // error codes
