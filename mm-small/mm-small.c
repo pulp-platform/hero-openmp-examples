@@ -26,10 +26,6 @@ int main(int argc, char *argv[])
   printf("HERO matrix multiplication started.\n");
 
   // Global variables
-  struct timespec start, stop;
-  double exe_time;
-  unsigned host_clk_freq_mhz = 0;
-
   uint32_t *a;
   uint32_t *b;
   uint32_t *c;
@@ -67,20 +63,6 @@ int main(int argc, char *argv[])
   memset((void *)d, 0, (size_t)(width*height));
 
   /*
-   * Make sure PULP is ready - speeds up the first target
-   *
-   * Actually, we should not use both devices at the same time as it is not safe. OpenMP will load
-   * or boot both of them. But in reality only one accelerator is there.
-   */
-  unsigned tmp_1 = 1;
-  unsigned tmp_2 = 2;
-  #pragma omp target device(BIGPULP_MEMCPY) map(to: tmp_1) map(from: tmp_2)
-  {
-    tmp_2 = tmp_1;
-  }
-  tmp_1 = tmp_2;
-
-  /*
    * Execute on host
    */
 
@@ -102,6 +84,20 @@ int main(int argc, char *argv[])
   /*
    * Execute on PULP
    */
+
+  /*
+   * Make sure PULP is ready - speeds up the first target
+   *
+   * Actually, we should not use both devices at the same time as it is not safe. OpenMP will load
+   * or boot both of them. But in reality only one accelerator is there.
+   */
+  unsigned tmp_1 = 1;
+  unsigned tmp_2 = 2;
+  #pragma omp target device(BIGPULP_MEMCPY) map(to: tmp_1) map(from: tmp_2)
+  {
+    tmp_2 = tmp_1;
+  }
+  tmp_1 = tmp_2;
 
   bench_start("PULP: Single-threaded, copy-based, no DMA");
   #pragma omp target device(BIGPULP_MEMCPY) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
