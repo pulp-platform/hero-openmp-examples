@@ -16,3 +16,8 @@ The optional arguments are:
 
 **-g** - Generate the gray scale file.
 
+Running on HERO
+===============
+
+make clean all test
+
