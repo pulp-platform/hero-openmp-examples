@@ -3,18 +3,16 @@
 #include <string.h>
 #include <stdint.h>
 //#include <omp.h>
-#include <time.h>         // for time measurements
-#include <unistd.h>
 #include <errno.h>        // for error codes
 #include "bench.h"
 #include <hero-target.h>
 
-void compare_matrices(uint32_t* a, uint32_t* b, int width, int height)
+void compare_matrices(uint32_t* a, uint32_t* b, unsigned width, unsigned height)
 {
-  for (int i=0; i<width; i++) {
-    for (int j=0; j<height; j++) {
+  for (unsigned i=0; i<width; i++) {
+    for (unsigned j=0; j<height; j++) {
       if(a[i*width+j] != b[i*width+j] ) {
-        printf("ERROR: Result mismatch in Row %i, Column %i!\n", j, i);
+        printf("ERROR: Result mismatch in Row %u, Column %u!\n", j, i);
         exit(-1);
       }
     }
@@ -25,15 +23,11 @@ void compare_matrices(uint32_t* a, uint32_t* b, int width, int height)
 
 int double_buf_mm(uint32_t * __restrict__ a, uint32_t * __restrict__ b, uint32_t * __restrict__ c, uint32_t width, uint32_t height, uint32_t stripe_height)
 {
-  int width_local, height_local, stripe_height_local;
-  width_local         = hero_tryread_prefetch((unsigned int *)&width);
-  height_local        = hero_tryread_prefetch((unsigned int *)&height);
-  stripe_height_local = hero_tryread_prefetch((unsigned int *)&stripe_height);
-  width_local         = hero_tryread((unsigned int *)&width);
-  height_local        = hero_tryread((unsigned int *)&height);
-  stripe_height_local = hero_tryread((unsigned int *)&stripe_height);
+  const unsigned width_local         = hero_tryread((unsigned int *)&width);
+  const unsigned height_local        = hero_tryread((unsigned int *)&height);
+  const unsigned stripe_height_local = hero_tryread((unsigned int *)&stripe_height);
 
-  const int n_stripes = height_local / stripe_height_local;
+  const unsigned n_stripes = height_local / stripe_height_local;
   const unsigned stripe_size_b = width_local * stripe_height_local * sizeof(uint32_t);
 
   uint32_t * a_ptrs[2];
@@ -80,7 +74,7 @@ int double_buf_mm(uint32_t * __restrict__ a, uint32_t * __restrict__ b, uint32_t
     }
 
     // horizontal a and c stripes
-    for (int s=0; s<n_stripes; s++) {
+    for (unsigned s=0; s<n_stripes; s++) {
 
       if (thread_id == 0) {
         // swap buffer
@@ -113,7 +107,7 @@ int double_buf_mm(uint32_t * __restrict__ a, uint32_t * __restrict__ b, uint32_t
       }
 
       // vertical b stripes
-      for (int t=0; t<n_stripes; t++) {
+      for (unsigned t=0; t<n_stripes; t++) {
 
         if ( (thread_id == 1) ) {
           // swap buffer
@@ -143,13 +137,13 @@ int double_buf_mm(uint32_t * __restrict__ a, uint32_t * __restrict__ b, uint32_t
         #pragma omp for collapse(2)
 
         // horizontal a and c rows
-        for (int i=0; i<stripe_height_local; i++) {
+        for (unsigned i=0; i<stripe_height_local; i++) {
 
           // vertical b columns
-          for (int j=0; j<stripe_height_local; j++) {
+          for (unsigned j=0; j<stripe_height_local; j++) {
 
-            int sum = 0;
-            for (int k=0; k<width_local; k++) {
+            uint32_t sum = 0;
+            for (unsigned k=0; k<width_local; k++) {
               sum = sum + a_ptrs[!a_idx][i*width_local+k] * b_ptrs[!b_idx][j*width_local+k];
             } // k < width_local
             c_ptrs[c_idx][i*width_local+t*stripe_height_local+j] = sum;
@@ -181,15 +175,9 @@ int main(int argc, char *argv[])
 {
   printf("HERO matrix multiplication started.\n");
 
-  // Global variables
-  uint32_t *a;
-  uint32_t *b;
-  uint32_t *c;
-  uint32_t *d;
-
-  int height  = 128;
+  unsigned height  = 128;
   if( argc > 1 ) {
-    height  = atoi(argv[1]);
+    height  = strtoul(argv[1], NULL, 0);
   }
   if (height > 512) {
     height = 512;
@@ -201,32 +189,31 @@ int main(int argc, char *argv[])
   // Take a height such that:
   // - it is divisible by stripe_height,
   // - the stripe size can actually be allocated in the L1 memory
-  int stripe_height = height/2;
-  int n_stripes;
+  unsigned stripe_height = height/2;
   while (stripe_height*height*sizeof(uint32_t) >= 32*1024) {
     stripe_height = stripe_height/2;
   }
-  n_stripes = height/stripe_height;
+  const unsigned n_stripes = height/stripe_height;
   height = n_stripes * stripe_height;
 
-  int width = height;
+  unsigned width = height;
 
   // Allocate memory
-  a = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
-  b = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
-  c = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
-  d = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
+  uint32_t * a = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
+  uint32_t * b = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
+  uint32_t * c = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
+  uint32_t * d = (uint32_t *)malloc(sizeof(uint32_t)*width*height);
   if ( (a == NULL) || (b == NULL) || (c == NULL) || (d == NULL) ) {
     printf("ERROR: malloc() failed!\n");
     return -ENOMEM;
   }
-  printf("width = %d, height = %d, stripe_height = %d, a @ %p, b @ %p, c @ %p\n",
+  printf("width = %u, height = %u, stripe_height = %u, a @ %p, b @ %p, c @ %p\n",
     width, height, stripe_height, a, b, c);
   printf("Total data size = %.2f KiB\n", 3*(float)(width*height*sizeof(uint32_t))/1024);
 
   // Init matrices
-  for (int i=0; i<width; i++) {
-    for (int j=0; j<height; j++) {
+  for (unsigned i=0; i<width; i++) {
+    for (unsigned j=0; j<height; j++) {
       a[i*width+j] = i*width+j;
       b[i*width+j] = i == j ? 2 : 0;
     }
@@ -242,10 +229,10 @@ int main(int argc, char *argv[])
   #pragma omp parallel firstprivate(a, b, d, width, height) num_threads(1)
   {
     #pragma omp for collapse(2)
-    for (int i=0; i<width; i++) {
-      for (int j=0; j<height; j++) {
-        int sum = 0;
-        for (int k=0; k<width; k++)
+    for (unsigned i=0; i<width; i++) {
+      for (unsigned j=0; j<height; j++) {
+        uint32_t sum = 0;
+        for (unsigned k=0; k<width; k++)
           sum = sum + a[i*width+k] * b[j*width+k];
         d[i*width+j] = sum;
       }
@@ -298,7 +285,7 @@ int main(int argc, char *argv[])
   #pragma omp target device(0) map(to: a[0:width*height], b[0:width*height], width, height, stripe_height) \
     map(from: c[0:width*height])
   {
-    unsigned sync;
+    unsigned sync = 0;
 
     #pragma omp parallel default(none) shared(a, b, c, width, height, stripe_height, sync) \
       num_threads(2)
