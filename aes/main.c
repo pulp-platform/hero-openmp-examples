@@ -7,7 +7,10 @@
 #include <stdlib.h>       // rand(), srand()
 #include <string.h>       // memcmp()
 
+#pragma omp declare target
+#include "aes.h"
 #include "aes.c"
+#pragma omp end declare target
 
 /**
  * Randomize an array of bytes.
