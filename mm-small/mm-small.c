@@ -175,65 +175,36 @@ int main(int argc, char *argv[])
   bench_start("PULP: Parallel, SVM, DMA");
   #pragma omp target device(BIGPULP_SVM) map(to: a[0:width*height], b[0:width*height], width, height) map(from: c[0:width*height])
   {
-    unsigned sync = 0;
+    unsigned width_local  = hero_tryread((unsigned int *)&width);
+    unsigned height_local = hero_tryread((unsigned int *)&height);
 
-    #pragma omp parallel default(none) shared(a, b, c, width, height, sync) num_threads(2)
-    {
-      // Spawn the miss-handler thread
-      if (omp_get_thread_num() == 0) {
-        const int core_id = hero_rt_core_id();
-        //#if RT_LOG_INFOS(LOG_LVL_VMM)
-        //  rt_info("Starting miss handling on core %d.\n", core_id);
-        //#endif
-        int ret;
-        do {
-          ret = hero_handle_rab_misses();
-          if (!(ret == 0 || ret == -ENOENT)) {
+    uint32_t * a_local = (uint32_t *)hero_l1malloc(width_local*height_local*sizeof(uint32_t));
+    uint32_t * b_local = (uint32_t *)hero_l1malloc(width_local*height_local*sizeof(uint32_t));
+    uint32_t * c_local = (uint32_t *)hero_l1malloc(width_local*height_local*sizeof(uint32_t));
+    if ( (a_local == NULL) || (b_local == NULL) || (c_local == NULL) ) {
+      printf("ERROR: Memory allocation failed!\n");
+    }
 
-            //#if RT_LOG_ERRORS(LOG_LVL_VMM)
-            //  rt_error("RAB miss handling returned nonzero error: %d!\n", -ret);
-            //#endif
-          }
-        } while (sync == 0);
-      } // omp_get_thread_num() == 0
+    hero_dma_job_t dma0 = hero_dma_memcpy_async(a_local, a, width_local*height_local*sizeof(uint32_t));
+    hero_dma_job_t dma1 = hero_dma_memcpy_async(b_local, b, width_local*height_local*sizeof(uint32_t));
+    hero_dma_wait(dma0);
+    hero_dma_wait(dma1);
 
-      // Worker threads...
-      else {
-        unsigned width_local  = hero_tryread((unsigned int *)&width);
-        unsigned height_local = hero_tryread((unsigned int *)&height);
+    #pragma omp parallel for collapse(2) firstprivate(a_local, b_local, c_local, width_local, height_local)
+    for (unsigned i=0; i<width_local; i++) {
+      for (unsigned j=0; j<height_local; j++) {
+        uint32_t sum = 0;
+        for (unsigned k=0; k<width_local; k++)
+          sum = sum + a_local[i*width_local+k] * b_local[k*width_local+j];
+        c_local[i*width_local+j] = sum;
+      }
+    }
 
-        uint32_t * a_local = (uint32_t *)hero_l1malloc(width_local*height_local*sizeof(uint32_t));
-        uint32_t * b_local = (uint32_t *)hero_l1malloc(width_local*height_local*sizeof(uint32_t));
-        uint32_t * c_local = (uint32_t *)hero_l1malloc(width_local*height_local*sizeof(uint32_t));
-        if ( (a_local == NULL) || (b_local == NULL) || (c_local == NULL) ) {
-          printf("ERROR: Memory allocation failed!\n");
-        }
+    hero_dma_memcpy(c, c_local, width_local*height_local*sizeof(uint32_t));
 
-        hero_dma_job_t dma0 = hero_dma_memcpy_async(a_local, a, width_local*height_local*sizeof(uint32_t));
-        hero_dma_job_t dma1 = hero_dma_memcpy_async(b_local, b, width_local*height_local*sizeof(uint32_t));
-        hero_dma_wait(dma0);
-        hero_dma_wait(dma1);
-
-        #pragma omp parallel for collapse(2) firstprivate(a_local, b_local, c_local, width_local, height_local)
-        for (unsigned i=0; i<width_local; i++) {
-          for (unsigned j=0; j<height_local; j++) {
-            uint32_t sum = 0;
-            for (unsigned k=0; k<width_local; k++)
-              sum = sum + a_local[i*width_local+k] * b_local[k*width_local+j];
-            c_local[i*width_local+j] = sum;
-          }
-        }
-
-        hero_dma_memcpy(c, c_local, width_local*height_local*sizeof(uint32_t));
-
-        hero_l1free(a_local);
-        hero_l1free(b_local);
-        hero_l1free(c_local);
-
-        // tell the miss-handler thread that we are done
-        sync = 1;
-      } // else ... omp_get_thread_num() == 0
-    } // parallel
+    hero_l1free(a_local);
+    hero_l1free(b_local);
+    hero_l1free(c_local);
   } // target
   bench_stop();
   compare_matrices(c, d, width, height);
