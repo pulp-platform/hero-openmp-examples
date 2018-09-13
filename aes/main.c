@@ -1,4 +1,3 @@
-#include "aes.h"
 #include "bench.h"
 #include "hero-target.h"
 #include <assert.h>
@@ -7,6 +6,8 @@
 #include <stdio.h>        // printf()
 #include <stdlib.h>       // rand(), srand()
 #include <string.h>       // memcmp()
+
+#include "aes.c"
 
 /**
  * Randomize an array of bytes.
