@@ -98,7 +98,7 @@ struct AES_ctx** init_AES_ctxs(const unsigned n, const uint8_t* const key)
   for (struct AES_ctx** ctx = ctxs; ctx < ctxs + n; ++ctx) {
     uint8_t iv[AES_BLOCKLEN];
     rand_bytes((uint8_t*)&iv, AES_BLOCKLEN);
-    AES_init_ctx_iv(*ctx, key, &iv);
+    AES_init_ctx_iv(*ctx, key, (uint8_t*)&iv);
   }
 
   return ctxs;
@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
 
 
   bench_start("Host: Encryption");
-  #pragma omp parallel //firstprivate(ctxs, ciphers, plains, n_strs, str_len)
+  #pragma omp parallel
   {
     #pragma omp parallel for
     for (unsigned i = 0; i < n_strs; ++i) {
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
 
 
   bench_start("Host: Decryption");
-  #pragma omp parallel //firstprivate(ctxs, decrpyteds, ciphers, n_strs, str_len)
+  #pragma omp parallel
   {
     #pragma omp parallel for
     for (unsigned i = 0; i < n_strs; ++i) {
