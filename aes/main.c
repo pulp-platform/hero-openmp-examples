@@ -199,6 +199,8 @@ int main(int argc, char *argv[])
               return 0;
   }
 
+  printf("n_strs = %u, str_len = %u, seed = 0x%08x\n", n_strs, str_len, seed);
+
   // Seed pseudo-random number generator.
   srand(seed);
 
