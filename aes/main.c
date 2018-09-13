@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
 
 
   bench_start("Host: Encryption");
-  #pragma omp parallel
+  #pragma omp parallel default(none) firstprivate(n_strs)
   {
     #pragma omp parallel for
     for (unsigned i = 0; i < n_strs; ++i) {
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
 
 
   bench_start("Host: Decryption");
-  #pragma omp parallel
+  #pragma omp parallel default(none) firstprivate(decrypteds, n_strs)
   {
     #pragma omp parallel for
     for (unsigned i = 0; i < n_strs; ++i) {
