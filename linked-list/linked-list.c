@@ -202,56 +202,26 @@ int main(int argc, char *argv[])
   #pragma omp target device(BIGPULP_SVM) map(to: vertices[0:n_vertices], n_vertices) \
     map(tofrom: n_successors_max)
   {
-    unsigned sync = 0;
+    unsigned n_vertices_local       = hero_tryread((unsigned int *)&n_vertices);
+    unsigned n_successors_max_local = hero_tryread((unsigned int *)&n_successors_max);
+    vertex * vertices_local         = (vertex *)hero_tryread((unsigned int *)&vertices);
 
-    #pragma omp parallel default(none) shared(vertices, n_vertices, n_successors_max, sync) \
-      num_threads(2)
+    #pragma omp parallel firstprivate(vertices_local, n_vertices_local) \
+      shared(n_successors_max_local) num_threads(1)
     {
-      // Spawn the miss-handler thread
-      if (omp_get_thread_num() == 0) {
-        const int core_id = hero_rt_core_id();
-        //#if RT_LOG_INFOS(LOG_LVL_VMM)
-        //  rt_info("Starting miss handling on core %d.\n", core_id);
-        //#endif
-        int ret;
-        do {
-          ret = hero_handle_rab_misses();
-          if (!(ret == 0 || ret == -ENOENT)) {
+      unsigned n_successors_tmp = 0;
 
-            //#if RT_LOG_ERRORS(LOG_LVL_VMM)
-            //  rt_error("RAB miss handling returned nonzero error: %d!\n", -ret);
-            //#endif
-          }
-        } while (sync == 0);
-      } // omp_get_thread_num() == 0
+      //#pragma omp for reduction(max: n_successors_max_local)
+      #pragma omp for
+      for (unsigned i=0; i<n_vertices_local; i++) {
+        n_successors_tmp = hero_tryread((unsigned *)(&(vertices_local[i].n_successors)));
 
-      // Worker threads...
-      else {
-        unsigned n_vertices_local       = hero_tryread((unsigned int *)&n_vertices);
-        unsigned n_successors_max_local = hero_tryread((unsigned int *)&n_successors_max);
-        vertex * vertices_local         = (vertex *)hero_tryread((unsigned int *)&vertices);
+        if (n_successors_max_local < n_successors_tmp)
+          n_successors_max_local = n_successors_tmp;
+      }
+    }
 
-        #pragma omp parallel firstprivate(vertices_local, n_vertices_local) \
-          shared(n_successors_max_local) num_threads(1)
-        {
-          unsigned n_successors_tmp = 0;
-
-          //#pragma omp for reduction(max: n_successors_max_local)
-          #pragma omp for
-          for (unsigned i=0; i<n_vertices_local; i++) {
-            n_successors_tmp = hero_tryread((unsigned *)(&(vertices_local[i].n_successors)));
-
-            if (n_successors_max_local < n_successors_tmp)
-              n_successors_max_local = n_successors_tmp;
-          }
-        }
-
-        hero_trywrite(&n_successors_max, n_successors_max_local);
-
-        // tell the miss-handler thread that we are done
-        sync = 1;
-      } // else ... omp_get_thread_num() == 0
-    } // parallel
+    hero_trywrite(&n_successors_max, n_successors_max_local);
   } // target
 
   bench_stop();
@@ -261,51 +231,21 @@ int main(int argc, char *argv[])
   #pragma omp target device(BIGPULP_SVM) map(to: vertices[0:n_vertices], n_vertices) \
     map(tofrom: n_edges)
   {
-    unsigned sync = 0;
+    unsigned n_vertices_local = hero_tryread((unsigned int *)&n_vertices);
+    unsigned n_edges_local    = hero_tryread((unsigned int *)&n_edges);
+    vertex * vertices_local   = (vertex *)hero_tryread((unsigned int *)&vertices);
 
-    #pragma omp parallel default(none) shared(vertices, n_vertices, n_edges, sync) \
-      num_threads(2)
+    #pragma omp parallel firstprivate(vertices_local, n_vertices_local) \
+      shared(n_edges_local) num_threads(1)
     {
-      // Spawn the miss-handler thread
-      if (omp_get_thread_num() == 0) {
-        const int core_id = hero_rt_core_id();
-        //#if RT_LOG_INFOS(LOG_LVL_VMM)
-        //  rt_info("Starting miss handling on core %d.\n", core_id);
-        //#endif
-        int ret;
-        do {
-          ret = hero_handle_rab_misses();
-          if (!(ret == 0 || ret == -ENOENT)) {
+      //#pragma omp for reduction(+:n_edges_local)
+      #pragma omp for
+      for (unsigned i=0; i<n_vertices_local; i++) {
+        n_edges_local += hero_tryread((unsigned *)(&(vertices_local[i].n_successors)));
+      }
+    }
 
-            //#if RT_LOG_ERRORS(LOG_LVL_VMM)
-            //  rt_error("RAB miss handling returned nonzero error: %d!\n", -ret);
-            //#endif
-          }
-        } while (sync == 0);
-      } // omp_get_thread_num() == 0
-
-      // Worker threads...
-      else {
-        unsigned n_vertices_local = hero_tryread((unsigned int *)&n_vertices);
-        unsigned n_edges_local    = hero_tryread((unsigned int *)&n_edges);
-        vertex * vertices_local   = (vertex *)hero_tryread((unsigned int *)&vertices);
-
-        #pragma omp parallel firstprivate(vertices_local, n_vertices_local) \
-          shared(n_edges_local) num_threads(1)
-        {
-          //#pragma omp for reduction(+:n_edges_local)
-          #pragma omp for
-          for (unsigned i=0; i<n_vertices_local; i++) {
-            n_edges_local += hero_tryread((unsigned *)(&(vertices_local[i].n_successors)));
-          }
-        }
-
-        hero_trywrite(&n_edges, n_edges_local);
-
-        // tell the miss-handler thread that we are done
-        sync = 1;
-      } // else ... omp_get_thread_num() == 0
-    } // parallel
+    hero_trywrite(&n_edges, n_edges_local);
   } // target
 
   bench_stop();
@@ -315,79 +255,48 @@ int main(int argc, char *argv[])
   #pragma omp target device(BIGPULP_SVM) map(to: vertices[0:n_vertices], n_vertices) \
     map(tofrom: n_predecessors_max, n_predecessors[0:n_vertices])
   {
-    unsigned sync = 0;
+    unsigned n_vertices_local         = hero_tryread((unsigned int *)&n_vertices);
+    unsigned n_predecessors_max_local = hero_tryread((unsigned int *)&n_predecessors_max);
+    vertex * vertices_local           = (vertex *)hero_tryread((unsigned int *)&vertices);
+    unsigned * n_predecessors_local   = hero_l1malloc(n_vertices_local * sizeof(unsigned));
+    if (n_predecessors_local == NULL) {
+      printf("ERROR: Memory allocation failed!\n");
+    }
 
-    #pragma omp parallel default(none) \
-      shared(vertices, n_vertices, n_predecessors, n_predecessors_max, sync) \
-      num_threads(2)
+    hero_dma_memcpy((void *)n_predecessors_local, (void *)n_predecessors, n_vertices*sizeof(unsigned));
+
+    #pragma omp parallel firstprivate(vertices_local, n_vertices_local, n_predecessors_local) \
+      shared(n_predecessors_max_local) num_threads(1)
     {
-      // Spawn the miss-handler thread
-      if (omp_get_thread_num() == 0) {
-        const int core_id = hero_rt_core_id();
-        //#if RT_LOG_INFOS(LOG_LVL_VMM)
-        //  rt_info("Starting miss handling on core %d.\n", core_id);
-        //#endif
-        int ret;
-        do {
-          ret = hero_handle_rab_misses();
-          if (!(ret == 0 || ret == -ENOENT)) {
+      unsigned n_successors_tmp = 0;
+      unsigned vertex_id_tmp    = 0;
 
-            //#if RT_LOG_ERRORS(LOG_LVL_VMM)
-            //  rt_error("RAB miss handling returned nonzero error: %d!\n", -ret);
-            //#endif
-          }
-        } while (sync == 0);
-      } // omp_get_thread_num() == 0
-
-      // Worker threads...
-      else {
-        unsigned n_vertices_local         = hero_tryread((unsigned int *)&n_vertices);
-        unsigned n_predecessors_max_local = hero_tryread((unsigned int *)&n_predecessors_max);
-        vertex * vertices_local           = (vertex *)hero_tryread((unsigned int *)&vertices);
-        unsigned * n_predecessors_local   = hero_l1malloc(n_vertices_local * sizeof(unsigned));
-        if (n_predecessors_local == NULL) {
-          printf("ERROR: Memory allocation failed!\n");
+      // get the number of predecessors for every vertex
+      #pragma omp for
+      for (unsigned i=0; i<n_vertices_local; i++) {
+        n_successors_tmp = hero_tryread((unsigned *)&vertices_local[i].n_successors);
+        for (unsigned j=0; j<n_successors_tmp; j++) {
+          hero_tryread((unsigned *)&vertices_local[i].successors[j]);
+          vertex_id_tmp = hero_tryread((unsigned *)&(vertices[i].successors[j]->vertex_id));
+          //#pragma omp atomic update
+          n_predecessors_local[vertex_id_tmp] += 1;
         }
+      }
 
-        hero_dma_memcpy((void *)n_predecessors_local, (void *)n_predecessors, n_vertices*sizeof(unsigned));
+      // get the max
+      //#pragma omp for reduction(max: n_predecessors_max_local)
+      #pragma omp for
+      for (unsigned i=0; i < n_vertices_local; i++) {
+        if (n_predecessors_local[i] > n_predecessors_max_local)
+          n_predecessors_max_local = n_predecessors_local[i];
+      }
+    }
 
-        #pragma omp parallel firstprivate(vertices_local, n_vertices_local, n_predecessors_local) \
-          shared(n_predecessors_max_local) num_threads(1)
-        {
-          unsigned n_successors_tmp = 0;
-          unsigned vertex_id_tmp    = 0;
+    hero_trywrite(&n_predecessors_max, n_predecessors_max_local);
 
-          // get the number of predecessors for every vertex
-          #pragma omp for
-          for (unsigned i=0; i<n_vertices_local; i++) {
-            n_successors_tmp = hero_tryread((unsigned *)&vertices_local[i].n_successors);
-            for (unsigned j=0; j<n_successors_tmp; j++) {
-              hero_tryread((unsigned *)&vertices_local[i].successors[j]);
-              vertex_id_tmp = hero_tryread((unsigned *)&(vertices[i].successors[j]->vertex_id));
-              //#pragma omp atomic update
-              n_predecessors_local[vertex_id_tmp] += 1;
-            }
-          }
+    hero_dma_memcpy((void *)n_predecessors, (void *)n_predecessors_local, n_vertices*sizeof(unsigned));
 
-          // get the max
-          //#pragma omp for reduction(max: n_predecessors_max_local)
-          #pragma omp for
-          for (unsigned i=0; i < n_vertices_local; i++) {
-            if (n_predecessors_local[i] > n_predecessors_max_local)
-              n_predecessors_max_local = n_predecessors_local[i];
-          }
-        }
-
-        hero_trywrite(&n_predecessors_max, n_predecessors_max_local);
-
-        hero_dma_memcpy((void *)n_predecessors, (void *)n_predecessors_local, n_vertices*sizeof(unsigned));
-
-        hero_l1free(n_predecessors_local);
-
-        // tell the miss-handler thread that we are done
-        sync = 1;
-      } // else ... omp_get_thread_num() == 0
-    } // parallel
+    hero_l1free(n_predecessors_local);
   } // target
 
   bench_stop();

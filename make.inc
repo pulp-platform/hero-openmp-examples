@@ -19,7 +19,7 @@ OBJDUMP = $(CROSS_COMPILE)objdump
 OPT     =-O2 -g3 -fopenmp
 #
 ############## Includes
-INCDIR        = -include ${PULP_SDK_INSTALL}/hero/hero-z-7045/cl_config.h \
+INCDIR        += -include ${PULP_SDK_INSTALL}/hero/hero-z-7045/cl_config.h \
                     -I${HERO_PULP_INC_DIR}/archi/chips/bigpulp \
                     -I${HERO_PULP_INC_DIR} \
                     -I${HERO_SDK_DIR}/libhero-target/inc \
