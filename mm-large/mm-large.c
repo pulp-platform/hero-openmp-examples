@@ -262,9 +262,7 @@ int main(int argc, char *argv[])
 
   #pragma omp target device(1) map(to: a[0:width*height], b[0:width*height], width, height, stripe_height) \
     map(from: c[0:width*height])
-  {
-    double_buf_mm(a, b, c, width, height, stripe_height);
-  }
+  double_buf_mm(a, b, c, width, height, stripe_height);
   bench_stop();
   compare_matrices(c, d, width, height);
   memset((void *)c, 0, (size_t)(width*height));
@@ -284,39 +282,7 @@ int main(int argc, char *argv[])
   bench_start("PULP Execution: Parallel, double-buffered DMA, SVM");
   #pragma omp target device(0) map(to: a[0:width*height], b[0:width*height], width, height, stripe_height) \
     map(from: c[0:width*height])
-  {
-    unsigned sync = 0;
-
-    #pragma omp parallel default(none) shared(a, b, c, width, height, stripe_height, sync) \
-      num_threads(2)
-    {
-      // Spawn the miss-handler thread
-      if (omp_get_thread_num() == 0) {
-        const int core_id = hero_rt_core_id();
-        //#if RT_LOG_INFOS(LOG_LVL_VMM)
-        //  rt_info("Starting miss handling on core %d.\n", core_id);
-        //#endif
-        int ret;
-        do {
-          ret = hero_handle_rab_misses();
-          if (!(ret == 0 || ret == -ENOENT)) {
-
-            //#if RT_LOG_ERRORS(LOG_LVL_VMM)
-            //  rt_error("RAB miss handling returned nonzero error: %d!\n", -ret);
-            //#endif
-          }
-        } while (sync == 0);
-      } // omp_get_thread_num() == 0
-
-      // Worker threads...
-      else {
-        double_buf_mm(a, b, c, width, height, stripe_height);
-
-        // tell the miss-handler thread that we are done
-        sync = 1;
-      } // else ... omp_get_thread_num() == 0
-    } // parallel
-  } // target
+  double_buf_mm(a, b, c, width, height, stripe_height);
   bench_stop();
   compare_matrices(c, d, width, height);
   memset((void *)c, 0, (size_t)(width*height));
