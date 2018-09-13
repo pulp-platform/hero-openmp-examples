@@ -317,87 +317,87 @@ int main(int argc, char *argv[])
   // data structure.
 
   bench_start("PULP Parallel, SVM, DMA: Encryption");
-  #pragma omp target device(0) \
-      map(to: plains[0:n_strs-1], n_strs, padded_str_len) \
-      map(tofrom: ctxs[0:n_strs-1]) \
-      map(from: ciphers[0:n_strs-1])
-  {
-    unsigned sync = 0;
+  //#pragma omp target device(0) \
+  //    map(to: plains[0:n_strs-1], n_strs, padded_str_len) \
+  //    map(tofrom: ctxs[0:n_strs-1]) \
+  //    map(from: ciphers[0:n_strs-1])
+  //{
+  //  unsigned sync = 0;
 
-    #pragma omp parallel default(none) \
-        shared(n_strs, sync) num_threads(2)
-    {
-      // Spawn the miss-handler thread
-      if (omp_get_thread_num() == 0) {
-        do {
-          const int ret = hero_handle_rab_misses();
-          if (!(ret == 0 || ret == -ENOENT)) {
-            printf("RAB miss handling returned error: %d!\n", -ret);
-            break;
-          }
-        } while (sync == 0);
-      }
+  //  #pragma omp parallel default(none) \
+  //      shared(n_strs, sync) num_threads(2)
+  //  {
+  //    // Spawn the miss-handler thread
+  //    if (omp_get_thread_num() == 0) {
+  //      do {
+  //        const int ret = hero_handle_rab_misses();
+  //        if (!(ret == 0 || ret == -ENOENT)) {
+  //          printf("RAB miss handling returned error: %d!\n", -ret);
+  //          break;
+  //        }
+  //      } while (sync == 0);
+  //    }
 
-      // Worker threads
-      else {
-        // Read arguments to local memory.
-        const uint8_t** const plains_loc = (const uint8_t**)hero_tryread((unsigned*)&plains);
-        const unsigned n_strs_loc = hero_tryread((unsigned*)&n_strs);
-        const unsigned str_len_loc = hero_tryread((unsigned*)&padded_str_len);
-        struct AES_ctx** const ctxs_loc = (struct AES_ctx**)hero_tryread((unsigned*)&ctxs);
-        uint8_t** const ciphers_loc = (uint8_t**)hero_tryread((unsigned*)&ciphers);
+  //    // Worker threads
+  //    else {
+  //      // Read arguments to local memory.
+  //      const uint8_t** const plains_loc = (const uint8_t**)hero_tryread((unsigned*)&plains);
+  //      const unsigned n_strs_loc = hero_tryread((unsigned*)&n_strs);
+  //      const unsigned str_len_loc = hero_tryread((unsigned*)&padded_str_len);
+  //      struct AES_ctx** const ctxs_loc = (struct AES_ctx**)hero_tryread((unsigned*)&ctxs);
+  //      uint8_t** const ciphers_loc = (uint8_t**)hero_tryread((unsigned*)&ciphers);
 
-        // Allocate memory for local buffers.
-        struct AES_ctx* ctx[7];
-        uint8_t* cipher[7];
-        for (unsigned i = 0; i < 7; ++i) {
-          ctx[i] = (struct AES_ctx*)hero_l1malloc(sizeof(struct AES_ctx));
-          if (ctx[i] == NULL)
-            printf("Failed to allocate buffer for AES context!\n");
-          cipher[i] = (uint8_t*)hero_l1malloc(str_len_loc * sizeof(uint8_t));
-          if (cipher[i] == NULL)
-            printf("Failed to allocate buffer for ciphertext!\n");
-        }
+  //      // Allocate memory for local buffers.
+  //      struct AES_ctx* ctx[7];
+  //      uint8_t* cipher[7];
+  //      for (unsigned i = 0; i < 7; ++i) {
+  //        ctx[i] = (struct AES_ctx*)hero_l1malloc(sizeof(struct AES_ctx));
+  //        if (ctx[i] == NULL)
+  //          printf("Failed to allocate buffer for AES context!\n");
+  //        cipher[i] = (uint8_t*)hero_l1malloc(str_len_loc * sizeof(uint8_t));
+  //        if (cipher[i] == NULL)
+  //          printf("Failed to allocate buffer for ciphertext!\n");
+  //      }
 
-        #pragma omp parallel for \
-            firstprivate(plains_loc, n_strs_loc, str_len_loc, ctxs_loc, ciphers_loc, ctx, cipher)
-        for (unsigned i = 0; i < n_strs_loc; ++i) {
-          const unsigned tid = omp_get_thread_num();
+  //      #pragma omp parallel for \
+  //          firstprivate(plains_loc, n_strs_loc, str_len_loc, ctxs_loc, ciphers_loc, ctx, cipher)
+  //      for (unsigned i = 0; i < n_strs_loc; ++i) {
+  //        const unsigned tid = omp_get_thread_num();
 
-          // Read plaintext and AES context into buffer.
-          // TODO: double-buffering
-          const uint8_t* const plain_ptr = (uint8_t*)hero_tryread((unsigned*)(plains_loc + i));
-          struct AES_ctx* const ctx_ptr = (struct AES_ctx*)hero_tryread((unsigned*)(ctxs_loc + i));
-          const hero_dma_job_t dma_plain
-              = hero_dma_memcpy_async(cipher[tid], plain_ptr, str_len_loc * sizeof(uint8_t));
-          const hero_dma_job_t dma_ctx_in
-              = hero_dma_memcpy_async(ctx[tid], ctx_ptr, sizeof(struct AES_ctx));
-          hero_dma_wait(dma_plain);
-          hero_dma_wait(dma_ctx_in);
+  //        // Read plaintext and AES context into buffer.
+  //        // TODO: double-buffering
+  //        const uint8_t* const plain_ptr = (uint8_t*)hero_tryread((unsigned*)(plains_loc + i));
+  //        struct AES_ctx* const ctx_ptr = (struct AES_ctx*)hero_tryread((unsigned*)(ctxs_loc + i));
+  //        const hero_dma_job_t dma_plain
+  //            = hero_dma_memcpy_async(cipher[tid], plain_ptr, str_len_loc * sizeof(uint8_t));
+  //        const hero_dma_job_t dma_ctx_in
+  //            = hero_dma_memcpy_async(ctx[tid], ctx_ptr, sizeof(struct AES_ctx));
+  //        hero_dma_wait(dma_plain);
+  //        hero_dma_wait(dma_ctx_in);
 
-          AES_CBC_encrypt_buffer(ctx[i], cipher[i], str_len_loc);
+  //        AES_CBC_encrypt_buffer(ctx[i], cipher[i], str_len_loc);
 
-          // Write ciphertext and AES context from buffer.
-          uint8_t* const cipher_ptr = (uint8_t*)hero_tryread((unsigned*)(ciphers_loc + i));
-          const hero_dma_job_t dma_cipher
-              = hero_dma_memcpy_async(cipher_ptr, cipher[tid], str_len_loc * sizeof(uint8_t));
-          const hero_dma_job_t dma_ctx_out
-              = hero_dma_memcpy_async(ctx_ptr, ctx[tid], sizeof(struct AES_ctx));
-          hero_dma_wait(dma_cipher);
-          hero_dma_wait(dma_ctx_out);
-        }
+  //        // Write ciphertext and AES context from buffer.
+  //        uint8_t* const cipher_ptr = (uint8_t*)hero_tryread((unsigned*)(ciphers_loc + i));
+  //        const hero_dma_job_t dma_cipher
+  //            = hero_dma_memcpy_async(cipher_ptr, cipher[tid], str_len_loc * sizeof(uint8_t));
+  //        const hero_dma_job_t dma_ctx_out
+  //            = hero_dma_memcpy_async(ctx_ptr, ctx[tid], sizeof(struct AES_ctx));
+  //        hero_dma_wait(dma_cipher);
+  //        hero_dma_wait(dma_ctx_out);
+  //      }
 
-        // Deallocate local buffers.
-        for (unsigned i = 0; i < 7; ++i) {
-          hero_l1free(ctx[i]);
-          hero_l1free(cipher[i]);
-        }
+  //      // Deallocate local buffers.
+  //      for (unsigned i = 0; i < 7; ++i) {
+  //        hero_l1free(ctx[i]);
+  //        hero_l1free(cipher[i]);
+  //      }
 
-        // Tell the miss-handler thread that we are done.
-        sync = 1;
-      }
-    }
-  }
+  //      // Tell the miss-handler thread that we are done.
+  //      sync = 1;
+  //    }
+  //  }
+  //}
   bench_stop();
 
   // free memory
