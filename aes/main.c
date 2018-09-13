@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
     #pragma omp parallel for
     for (unsigned i = 0; i < n_strs; ++i) {
       memcpy(ciphers[i], plains[i], padded_str_len * sizeof(uint8_t));
-      //AES_CBC_encrypt_buffer(ctxs[i], ciphers[i], padded_str_len);
+      AES_CBC_encrypt_buffer(ctxs[i], ciphers[i], padded_str_len);
     }
   }
   bench_stop();
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
     #pragma omp parallel for
     for (unsigned i = 0; i < n_strs; ++i) {
       memcpy(decrypteds[i], ciphers[i], padded_str_len * sizeof(uint8_t));
-      //AES_CBC_decrypt_buffer(ctxs[i], decrypteds[i], padded_str_len);
+      AES_CBC_decrypt_buffer(ctxs[i], decrypteds[i], padded_str_len);
     }
   }
   bench_stop();
