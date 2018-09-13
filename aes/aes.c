@@ -34,7 +34,7 @@
 /* Private variables:                                                        */
 /*****************************************************************************/
 // state - array holding the intermediate results during decryption.
-typedef uint8_t state_t[4][4];
+//typedef uint8_t state_t[4][4];
 
 // The lookup-tables are marked const so they can be placed in read-only storage instead of RAM
 // The numbers below can be computed dynamically trading ROM for RAM -
@@ -94,8 +94,12 @@ static const uint8_t Rcon[11] = {
 /*****************************************************************************/
 /* Private functions:                                                        */
 /*****************************************************************************/
-#define getSBoxValue(num) (sbox[(num)])
-#define getSBoxInvert(num) (rsbox[(num)])
+//#define getSBoxValue(num) (sbox[(num)])
+static inline uint8_t getSBoxValue(unsigned num)
+{
+  return sbox[num];
+}
+//#define getSBoxInvert(num) (rsbox[(num)])
 
 //#pragma omp end declare target
 
@@ -198,28 +202,23 @@ void AES_ctx_set_iv(struct AES_ctx* ctx, const uint8_t* iv)
 
 // This function adds the round key to state.
 // The round key is added to the state by an XOR function.
-static void AddRoundKey(uint8_t round,state_t* state,uint8_t* RoundKey)
+static void AddRoundKey(uint8_t round, uint8_t* state, uint8_t* RoundKey)
 {
-  uint8_t i,j;
-  for (i = 0; i < 4; ++i)
-  {
-    for (j = 0; j < 4; ++j)
-    {
-      (*state)[i][j] ^= RoundKey[(round * Nb * 4) + (i * Nb) + j];
+  uint8_t* wptr = state;
+  for (unsigned i = 0; i < 4; ++i) {
+    for (unsigned j = 0; j < 4; ++j) {
+      *(wptr++) = RoundKey[(round * Nb * 4) + (i * Nb) + j]; //(*state)[i][j] ^= RoundKey[(round * Nb * 4) + (i * Nb) + j];
     }
   }
 }
 
 // The SubBytes Function Substitutes the values in the
 // state matrix with values in an S-box.
-static void SubBytes(state_t* state)
+static void SubBytes(uint8_t* state)
 {
-  uint8_t i, j;
-  for (i = 0; i < 4; ++i)
-  {
-    for (j = 0; j < 4; ++j)
-    {
-      (*state)[j][i] = getSBoxValue((*state)[j][i]);
+  for (unsigned i = 0; i < 4; ++i) {
+    for (unsigned j = 0; j < 4; ++j) {
+      *state = 0; // (*state)[j][i] = getSBoxValue((*state)[j][i]);
     }
   }
 }
@@ -227,142 +226,142 @@ static void SubBytes(state_t* state)
 // The ShiftRows() function shifts the rows in the state to the left.
 // Each row is shifted with different offset.
 // Offset = Row number. So the first row is not shifted.
-static void ShiftRows(state_t* state)
-{
-  uint8_t temp;
+//static void ShiftRows(state_t* state)
+//{
+//  uint8_t temp;
+//
+//  // Rotate first row 1 columns to left
+//  temp           = (*state)[0][1];
+//  (*state)[0][1] = (*state)[1][1];
+//  (*state)[1][1] = (*state)[2][1];
+//  (*state)[2][1] = (*state)[3][1];
+//  (*state)[3][1] = temp;
+//
+//  // Rotate second row 2 columns to left
+//  temp           = (*state)[0][2];
+//  (*state)[0][2] = (*state)[2][2];
+//  (*state)[2][2] = temp;
+//
+//  temp           = (*state)[1][2];
+//  (*state)[1][2] = (*state)[3][2];
+//  (*state)[3][2] = temp;
+//
+//  // Rotate third row 3 columns to left
+//  temp           = (*state)[0][3];
+//  (*state)[0][3] = (*state)[3][3];
+//  (*state)[3][3] = (*state)[2][3];
+//  (*state)[2][3] = (*state)[1][3];
+//  (*state)[1][3] = temp;
+//}
 
-  // Rotate first row 1 columns to left
-  temp           = (*state)[0][1];
-  (*state)[0][1] = (*state)[1][1];
-  (*state)[1][1] = (*state)[2][1];
-  (*state)[2][1] = (*state)[3][1];
-  (*state)[3][1] = temp;
-
-  // Rotate second row 2 columns to left
-  temp           = (*state)[0][2];
-  (*state)[0][2] = (*state)[2][2];
-  (*state)[2][2] = temp;
-
-  temp           = (*state)[1][2];
-  (*state)[1][2] = (*state)[3][2];
-  (*state)[3][2] = temp;
-
-  // Rotate third row 3 columns to left
-  temp           = (*state)[0][3];
-  (*state)[0][3] = (*state)[3][3];
-  (*state)[3][3] = (*state)[2][3];
-  (*state)[2][3] = (*state)[1][3];
-  (*state)[1][3] = temp;
-}
-
-static uint8_t xtime(uint8_t x)
-{
-  return ((x<<1) ^ (((x>>7) & 1) * 0x1b));
-}
+//static uint8_t xtime(uint8_t x)
+//{
+//  return ((x<<1) ^ (((x>>7) & 1) * 0x1b));
+//}
 
 // MixColumns function mixes the columns of the state matrix
-static void MixColumns(state_t* state)
-{
-  uint8_t i;
-  uint8_t Tmp, Tm, t;
-  for (i = 0; i < 4; ++i)
-  {
-    t   = (*state)[i][0];
-    Tmp = (*state)[i][0] ^ (*state)[i][1] ^ (*state)[i][2] ^ (*state)[i][3] ;
-    Tm  = (*state)[i][0] ^ (*state)[i][1] ; Tm = xtime(Tm);  (*state)[i][0] ^= Tm ^ Tmp ;
-    Tm  = (*state)[i][1] ^ (*state)[i][2] ; Tm = xtime(Tm);  (*state)[i][1] ^= Tm ^ Tmp ;
-    Tm  = (*state)[i][2] ^ (*state)[i][3] ; Tm = xtime(Tm);  (*state)[i][2] ^= Tm ^ Tmp ;
-    Tm  = (*state)[i][3] ^ t ;              Tm = xtime(Tm);  (*state)[i][3] ^= Tm ^ Tmp ;
-  }
-}
+//static void MixColumns(state_t* state)
+//{
+//  uint8_t i;
+//  uint8_t Tmp, Tm, t;
+//  for (i = 0; i < 4; ++i)
+//  {
+//    t   = (*state)[i][0];
+//    Tmp = (*state)[i][0] ^ (*state)[i][1] ^ (*state)[i][2] ^ (*state)[i][3] ;
+//    Tm  = (*state)[i][0] ^ (*state)[i][1] ; Tm = xtime(Tm);  (*state)[i][0] ^= Tm ^ Tmp ;
+//    Tm  = (*state)[i][1] ^ (*state)[i][2] ; Tm = xtime(Tm);  (*state)[i][1] ^= Tm ^ Tmp ;
+//    Tm  = (*state)[i][2] ^ (*state)[i][3] ; Tm = xtime(Tm);  (*state)[i][2] ^= Tm ^ Tmp ;
+//    Tm  = (*state)[i][3] ^ t ;              Tm = xtime(Tm);  (*state)[i][3] ^= Tm ^ Tmp ;
+//  }
+//}
 
 // Multiply is used to multiply numbers in the field GF(2^8)
 // Note: The last call to xtime() is unneeded, but often ends up generating a smaller binary
 //       The compiler seems to be able to vectorize the operation better this way.
 //       See https://github.com/kokke/tiny-AES-c/pull/34
-#if MULTIPLY_AS_A_FUNCTION
-static uint8_t Multiply(uint8_t x, uint8_t y)
-{
-  return (((y & 1) * x) ^
-       ((y>>1 & 1) * xtime(x)) ^
-       ((y>>2 & 1) * xtime(xtime(x))) ^
-       ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^
-       ((y>>4 & 1) * xtime(xtime(xtime(xtime(x)))))); /* this last call to xtime() can be omitted */
-  }
-#else
-#define Multiply(x, y)                                \
-      (  ((y & 1) * x) ^                              \
-      ((y>>1 & 1) * xtime(x)) ^                       \
-      ((y>>2 & 1) * xtime(xtime(x))) ^                \
-      ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^         \
-      ((y>>4 & 1) * xtime(xtime(xtime(xtime(x))))))
-#endif
+//#if MULTIPLY_AS_A_FUNCTION
+//static uint8_t Multiply(uint8_t x, uint8_t y)
+//{
+//  return (((y & 1) * x) ^
+//       ((y>>1 & 1) * xtime(x)) ^
+//       ((y>>2 & 1) * xtime(xtime(x))) ^
+//       ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^
+//       ((y>>4 & 1) * xtime(xtime(xtime(xtime(x)))))); /* this last call to xtime() can be omitted */
+//  }
+//#else
+//#define Multiply(x, y)                                \
+//      (  ((y & 1) * x) ^                              \
+//      ((y>>1 & 1) * xtime(x)) ^                       \
+//      ((y>>2 & 1) * xtime(xtime(x))) ^                \
+//      ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^         \
+//      ((y>>4 & 1) * xtime(xtime(xtime(xtime(x))))))
+//#endif
 
 // MixColumns function mixes the columns of the state matrix.
 // The method used to multiply may be difficult to understand for the inexperienced.
 // Please use the references to gain more information.
-static void InvMixColumns(state_t* state)
-{
-  int i;
-  uint8_t a, b, c, d;
-  for (i = 0; i < 4; ++i)
-  {
-    a = (*state)[i][0];
-    b = (*state)[i][1];
-    c = (*state)[i][2];
-    d = (*state)[i][3];
-
-    (*state)[i][0] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
-    (*state)[i][1] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
-    (*state)[i][2] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
-    (*state)[i][3] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
-  }
-}
+//static void InvMixColumns(state_t* state)
+//{
+//  int i;
+//  uint8_t a, b, c, d;
+//  for (i = 0; i < 4; ++i)
+//  {
+//    a = (*state)[i][0];
+//    b = (*state)[i][1];
+//    c = (*state)[i][2];
+//    d = (*state)[i][3];
+//
+//    (*state)[i][0] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
+//    (*state)[i][1] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
+//    (*state)[i][2] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
+//    (*state)[i][3] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
+//  }
+//}
 
 // The SubBytes Function Substitutes the values in the
 // state matrix with values in an S-box.
-static void InvSubBytes(state_t* state)
-{
-  uint8_t i, j;
-  for (i = 0; i < 4; ++i)
-  {
-    for (j = 0; j < 4; ++j)
-    {
-      (*state)[j][i] = getSBoxInvert((*state)[j][i]);
-    }
-  }
-}
+//static void InvSubBytes(state_t* state)
+//{
+//  uint8_t i, j;
+//  for (i = 0; i < 4; ++i)
+//  {
+//    for (j = 0; j < 4; ++j)
+//    {
+//      (*state)[j][i] = getSBoxInvert((*state)[j][i]);
+//    }
+//  }
+//}
 
-static void InvShiftRows(state_t* state)
-{
-  uint8_t temp;
-
-  // Rotate first row 1 columns to right
-  temp = (*state)[3][1];
-  (*state)[3][1] = (*state)[2][1];
-  (*state)[2][1] = (*state)[1][1];
-  (*state)[1][1] = (*state)[0][1];
-  (*state)[0][1] = temp;
-
-  // Rotate second row 2 columns to right
-  temp = (*state)[0][2];
-  (*state)[0][2] = (*state)[2][2];
-  (*state)[2][2] = temp;
-
-  temp = (*state)[1][2];
-  (*state)[1][2] = (*state)[3][2];
-  (*state)[3][2] = temp;
-
-  // Rotate third row 3 columns to right
-  temp = (*state)[0][3];
-  (*state)[0][3] = (*state)[1][3];
-  (*state)[1][3] = (*state)[2][3];
-  (*state)[2][3] = (*state)[3][3];
-  (*state)[3][3] = temp;
-}
+//static void InvShiftRows(state_t* state)
+//{
+//  uint8_t temp;
+//
+//  // Rotate first row 1 columns to right
+//  temp = (*state)[3][1];
+//  (*state)[3][1] = (*state)[2][1];
+//  (*state)[2][1] = (*state)[1][1];
+//  (*state)[1][1] = (*state)[0][1];
+//  (*state)[0][1] = temp;
+//
+//  // Rotate second row 2 columns to right
+//  temp = (*state)[0][2];
+//  (*state)[0][2] = (*state)[2][2];
+//  (*state)[2][2] = temp;
+//
+//  temp = (*state)[1][2];
+//  (*state)[1][2] = (*state)[3][2];
+//  (*state)[3][2] = temp;
+//
+//  // Rotate third row 3 columns to right
+//  temp = (*state)[0][3];
+//  (*state)[0][3] = (*state)[1][3];
+//  (*state)[1][3] = (*state)[2][3];
+//  (*state)[2][3] = (*state)[3][3];
+//  (*state)[3][3] = temp;
+//}
 
 // Cipher is the main function that encrypts the PlainText.
-static void Cipher(state_t* state, uint8_t* RoundKey)
+static void Cipher(uint8_t* state, uint8_t* RoundKey)
 {
   uint8_t round = 0;
 
@@ -375,16 +374,16 @@ static void Cipher(state_t* state, uint8_t* RoundKey)
   for (round = 1; round < Nr; ++round)
   {
     SubBytes(state);
-    ShiftRows(state);
-    MixColumns(state);
-    AddRoundKey(round, state, RoundKey);
+    //ShiftRows(state);
+    //MixColumns(state);
+    //AddRoundKey(round, state, RoundKey);
   }
 
   // The last round is given below.
   // The MixColumns function is not here in the last round.
   SubBytes(state);
-  ShiftRows(state);
-  AddRoundKey(Nr, state, RoundKey);
+  //ShiftRows(state);
+  //AddRoundKey(Nr, state, RoundKey);
 }
 
 /*****************************************************************************/
@@ -409,7 +408,7 @@ void AES_CBC_encrypt_buffer(struct AES_ctx *ctx,uint8_t* buf, uint32_t length)
   for (i = 0; i < length; i += AES_BLOCKLEN)
   {
     XorWithIv(buf, Iv);
-    Cipher((state_t*)buf, ctx->RoundKey);
+    Cipher(buf, ctx->RoundKey);
     Iv = buf;
     buf += AES_BLOCKLEN;
     //printf("Step %d - %d", i/16, i);
