@@ -218,7 +218,8 @@ static void SubBytes(uint8_t* state)
 {
   for (unsigned i = 0; i < 4; ++i) {
     for (unsigned j = 0; j < 4; ++j) {
-      *state = 0; // (*state)[j][i] = getSBoxValue((*state)[j][i]);
+      //volatile unsigned a = 0;
+      //*state = 0; // (*state)[j][i] = getSBoxValue((*state)[j][i]);
     }
   }
 }
