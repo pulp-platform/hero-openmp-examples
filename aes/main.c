@@ -31,6 +31,13 @@ void free_byte_bufs(uint8_t** const bufs, const unsigned n)
   free(bufs);
 }
 
+void print_aes_block(const uint8_t* const block)
+{
+  for (const uint8_t* byte = block; byte < block + AES_BLOCKLEN - 1; ++byte)
+    printf("%02x ", *byte);
+  printf("%02x\n", *(block + AES_BLOCKLEN - 1));
+}
+
 /**
  * Allocate byte buffers.
  */
@@ -250,6 +257,10 @@ int main(int argc, char *argv[])
    * Execute on host
    */
 
+  printf("IVs:\n");
+  for (unsigned i = 0; i < n_strs; ++i)
+    print_aes_block(ivs[i]);
+
   bench_start("Host: Encryption");
   #pragma omp parallel //firstprivate(ctxs, ciphers, plains, n_strs, str_len)
   {
@@ -261,8 +272,16 @@ int main(int argc, char *argv[])
   }
   bench_stop();
 
+  printf("IVs:\n");
+  for (unsigned i = 0; i < n_strs; ++i)
+    print_aes_block(ivs[i]);
+
   // Reset IVs.
   AES_ctx_set_ivs(ctxs, ivs, n_strs);
+
+  printf("IVs:\n");
+  for (unsigned i = 0; i < n_strs; ++i)
+    print_aes_block(ivs[i]);
 
   bench_start("Host: Decryption");
   #pragma omp parallel //firstprivate(ctxs, decrpyteds, ciphers, n_strs, str_len)
