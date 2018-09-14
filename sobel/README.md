@@ -24,3 +24,5 @@ make clean all test
 
 The `test` rule of the Makefile will copy to the HERO emulator the example pictures stored in the directory `IMG_DIR` and it will copy back after the execution on the folder `IMG_DIR_OUT`.
 User can change such directories properly.
+
+User can control the application arguments, image folder name, and picture file name changing the environment setup on the `Makefile`.
