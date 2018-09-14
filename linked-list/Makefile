@@ -1,4 +1,5 @@
 CSRCS = linked-list.c
+CFLAGS= -foffload=riscv32-unknown-elf
 -include $(PWD)/../make.inc
 
 prepare::
