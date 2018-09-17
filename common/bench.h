@@ -1,3 +1,6 @@
+#ifndef __BENCH_H__
+#define __BENCH_H__
+
 #include <errno.h>    // error codes
 #include <stdarg.h>   // va_list, va_end(), va_start()
 #include <stdio.h>    // fclose(), fgets(), fopen(), printf(), vprintf()
@@ -79,3 +82,5 @@ static int get_host_clk_freq_mhz()
 
   return host_clk_freq_mhz;
 }
+
+#endif
