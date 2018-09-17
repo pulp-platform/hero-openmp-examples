@@ -54,6 +54,7 @@ prepare:: $(EXE)
 ifndef HERO_TARGET_HOST
 $(error HERO_TARGET_HOST is not set)
 endif
+	ssh $(HERO_TARGET_HOST) "mkdir -p $(HERO_TARGET_PATH_APPS)"
 	scp $(EXE) $(HERO_TARGET_HOST):$(HERO_TARGET_PATH_APPS)/.
 
 run: prepare $(EXE)

@@ -1,3 +1,22 @@
+/*
+ * Copyright 2018 ETH Zurich, University of Bologna
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef __BENCH_H__
+#define __BENCH_H__
+
 #include <errno.h>    // error codes
 #include <stdarg.h>   // va_list, va_end(), va_start()
 #include <stdio.h>    // fclose(), fgets(), fopen(), printf(), vprintf()
@@ -79,3 +98,5 @@ static int get_host_clk_freq_mhz()
 
   return host_clk_freq_mhz;
 }
+
+#endif
