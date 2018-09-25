@@ -7,4 +7,4 @@ $(error HERO_TARGET_HOST is not set)
 endif
 	scp *.txt $(HERO_TARGET_HOST):$(HERO_TARGET_PATH_APPS)/.
 
--include $(PWD)/../make.inc
+-include $(PWD)/../make.mk
