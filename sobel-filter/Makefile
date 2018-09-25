@@ -22,21 +22,29 @@ IMAGE_NAME   = img
 
 RUN_ARGS=$(IMG_DIR)/$(IMAGE_NAME).rgb $(IMG_DIR)/$(IMAGE_NAME).gray 512x512 -g $(IMG_DIR)/$(IMAGE_NAME)_gray.gray -i $(IMG_DIR)/$(IMAGE_NAME)_h.gray $(IMG_DIR)/$(IMAGE_NAME)_v.gray
 
--include $(PWD)/../make.inc
-
 copyout:
-	convert $(IMG_DIR)/$(IMAGE_NAME).png $(IMG_DIR)/$(IMAGE_NAME).rgb
+	convert $(IMG_DIR)/$(IMAGE_NAME).png $(IMG_DIR)/$(IMAGE_NAME).rgb	
+ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_APPS),)
 	scp -r ${IMG_DIR} $(HERO_TARGET_HOST):${HERO_TARGET_PATH_APPS}
+else
+$(error HERO_TARGET_HOST and/or HERO_TARGET_PATH_APPS is not set)
+endif
 
 copyin:
 	mkdir -p ${IMG_DIR_OUT}
+ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_APPS),)
 	scp -r $(HERO_TARGET_HOST):${HERO_TARGET_PATH_APPS}/${IMG_DIR}/* ${IMG_DIR_OUT}/.
 	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME).gray $(IMG_DIR_OUT)/$(IMAGE_NAME).png
 	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME)_gray.gray $(IMG_DIR_OUT)/$(IMAGE_NAME)_gray.png
 	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME)_h.gray $(IMG_DIR_OUT)/$(IMAGE_NAME)_h.png
 	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME)_v.gray $(IMG_DIR_OUT)/$(IMAGE_NAME)_v.png
+else
+$(error HERO_TARGET_HOST and/or HERO_TARGET_PATH_APPS is not set)
+endif
 
-remove-output:
+clean::
 	rm -rf $(IMG_DIR_OUT)
 
-test: copyout run copyin
+run:: copyout
+
+-include $(PWD)/../make.inc

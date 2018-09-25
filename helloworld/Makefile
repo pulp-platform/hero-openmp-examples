@@ -1,4 +1,4 @@
 ############################ OpenMP Sources ############################
 CSRCS = helloworld.c
-CFLAGS= -v 
+CFLAGS= 
 -include $(PWD)/../make.inc
