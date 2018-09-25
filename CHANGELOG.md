@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](http://semver.org).
 
+## v1.2.0 - 2018-09-25
+
+### Added
+- Added top level 'Makefile' for CI and automatic test generation
+
+### Changed
+- On 'make.inc':
+	- Removed useless 'pulp' related cflags
+	- Enable overridable 'run' and 'clean' makefile targets
+
+### Fixed
+- Added 'omp.h' on all the applications after #22 bug fix.
+
 ## v1.1.0 - 2018-09-18
 
 ### Added

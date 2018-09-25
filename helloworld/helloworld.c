@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
+#include <omp.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
 #include <hero-target.h>
-//#include <omp.h>
 
 struct timespec start, stop;
 double start_ns, stop_ns, exe_time;

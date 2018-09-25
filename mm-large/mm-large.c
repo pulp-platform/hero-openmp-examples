@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
+#include <omp.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-//#include <omp.h>
 #include <errno.h>        // for error codes
 #include "bench.h"
 #include <hero-target.h>
