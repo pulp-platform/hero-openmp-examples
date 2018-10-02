@@ -47,4 +47,4 @@ clean::
 
 run:: copyout
 
--include $(PWD)/../make.inc
+-include $(PWD)/../common/default.mk

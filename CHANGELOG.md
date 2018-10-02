@@ -5,18 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](http://semver.org).
 
+## v1.2.1 - 2018-10-2
+
+### Changed
+- Rename `make.inc` in `common/default.mk`.
+
 ## v1.2.0 - 2018-09-25
 
 ### Added
-- Added top level 'Makefile' for CI and automatic test generation
+- Add top level `Makefile` for CI and automatic test generation.
 
 ### Changed
-- On 'make.inc':
-	- Removed useless 'pulp' related cflags
-	- Enable overridable 'run' and 'clean' makefile targets
+- In `make.inc`:
+  - Remove useless PULP-related `CFLAGS`.
+  - Enable `run` and `clean` rules to be extended (i.e., make them double-colon rules).
 
 ### Fixed
-- Added 'omp.h' on all the applications after #22 bug fix.
+- Add `omp.h` to all applications after fixing [#22](https://github.com/pulp-platform/hero-sdk/issues/22) in the HERO SDK.
 
 ## v1.1.0 - 2018-09-18
 
