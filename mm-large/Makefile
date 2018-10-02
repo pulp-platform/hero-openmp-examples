@@ -1,2 +1,2 @@
 CSRCS = mm-large.c
--include $(PWD)/../make.inc
+-include $(PWD)/../common/default.mk
