@@ -1,2 +1,3 @@
 CSRCS = mm-large.c
--include $(PWD)/../common/default.mk
+
+-include ${HERO_OMP_EXAMPLES_DIR}/common/default.mk

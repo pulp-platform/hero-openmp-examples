@@ -5,9 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](http://semver.org).
 
+## v1.3.0 - 2018-10-17
+
+Added support for CI testing based on `plptest` framework.
+
+### Added
+- `*/testset.cfg`: add tests configuration file;
+
+### Changed
+- `*/Makefile`: `default.mk` include is now based on absolute path.
+
+
 ## v1.2.1 - 2018-10-2
 
 ### Changed
+
 - Rename `make.inc` in `common/default.mk`.
 
 ## v1.2.0 - 2018-09-25
@@ -23,6 +35,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/), and this 
 ### Fixed
 - Add `omp.h` to all applications after fixing [#22](https://github.com/pulp-platform/hero-sdk/issues/22) in the HERO SDK.
 
+
 ## v1.1.0 - 2018-09-18
 
 ### Added
@@ -34,6 +47,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/), and this 
 - Add license header to all C files.
 - Ensure that remote directory exists during `make install`.
 - `common/bench.h:` Add missing include guard.
+
 
 ## v1.0.0 - 2018-09-14
 

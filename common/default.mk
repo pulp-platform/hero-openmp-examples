@@ -43,10 +43,11 @@ init-target-host:
 ifndef HERO_TARGET_HOST
 $(error HERO_TARGET_HOST is not set)
 endif
+	ssh -t $(HERO_TARGET_HOST) './sourceme.sh'
 	ssh -t $(HERO_TARGET_HOST) 'rmmod -f pulp'
 	ssh -t $(HERO_TARGET_HOST) 'insmod $(HERO_TARGET_PATH_DRIVER)/pulp.ko'
 
-prepare:: $(EXE)
+prepare:: init-target-host $(EXE)
 ifndef HERO_TARGET_HOST
 $(error HERO_TARGET_HOST is not set)
 endif
