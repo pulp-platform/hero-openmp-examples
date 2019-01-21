@@ -46,11 +46,32 @@ int main(int argc, char *argv[])
   }
   tmp_1 = tmp_2; // }}}
 
-  bench_start("PULP"); // {{{
+  bench_start("PULP: Single-threaded"); // {{{
   #pragma omp target device(BIGPULP_MEMCPY) \
     map(to: a[0:n*n], b[0:n*n], n) \
     map(from: c[0:n*n])
   {
+    for (unsigned i = 0; i < n; ++i) {
+      for (unsigned j = 0; j < n; ++j) {
+        uint32_t sum = 0;
+        for (unsigned k = 0; k < n; ++k)
+          sum += a[i*n+k] * b[k*n+j];
+        c[i*n+j] = sum;
+      }
+    }
+  }
+  bench_stop();
+  compare_matrices(c, d, n);
+  memset((void*)c, 0, n*n); // }}}
+
+  bench_start("PULP: Parallel"); // {{{
+  #pragma omp target device(BIGPULP_MEMCPY) \
+    map(to: a[0:n*n], b[0:n*n], n) \
+    map(from: c[0:n*n])
+  {
+    #pragma omp parallel for \
+      firstprivate(a, b, c, n) \
+      collapse(2)
     for (unsigned i = 0; i < n; ++i) {
       for (unsigned j = 0; j < n; ++j) {
         uint32_t sum = 0;
