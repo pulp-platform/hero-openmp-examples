@@ -21,6 +21,9 @@ int main(int argc, char *argv[])
   // Execute on host
 
   bench_start("Host"); // {{{
+  #pragma omp parallel for \
+    firstprivate(a, b, d, n) \
+    collapse(2)
   for (unsigned i = 0; i < n; ++i) {
     for (unsigned j = 0; j < n; ++j) {
       uint32_t sum = 0;
