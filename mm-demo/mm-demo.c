@@ -36,6 +36,16 @@ int main(int argc, char *argv[])
 
   // Execute on PULP
 
+  // Make sure PULP is ready (not necessary but speeds up the first target). {{{
+  unsigned tmp_1 = 1, tmp_2 = 2;
+  #pragma omp target device(BIGPULP_MEMCPY) \
+    map(to: tmp_1) \
+    map(from: tmp_2)
+  {
+    tmp_2 = tmp_1;
+  }
+  tmp_1 = tmp_2; // }}}
+
   bench_start("PULP"); // {{{
   #pragma omp target device(BIGPULP_MEMCPY) \
     map(to: a[0:n*n], b[0:n*n], n) \
