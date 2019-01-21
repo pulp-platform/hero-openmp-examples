@@ -126,6 +126,14 @@ int main(int argc, char *argv[])
   compare_matrices(c, d, n);
   memset((void*)c, 0, n*n); // }}}
 
+  // Make sure PULP is ready (not necessary but speeds up the first target). {{{
+  #pragma omp target device(BIGPULP_SVM) map(to: tmp_1) map(from: tmp_2)
+  {
+    hero_trywrite(&tmp_2, hero_tryread(&tmp_1));
+  }
+  tmp_1 = tmp_2;
+  // }}}
+
   bench_start("PULP: Parallel, SVM, DMA"); // {{{
   #pragma omp target device(BIGPULP_SVM) \
     map(to: a[0:n*n], b[0:n*n], n) \
