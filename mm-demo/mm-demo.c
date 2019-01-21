@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
   }
   tmp_1 = tmp_2; // }}}
 
-  bench_start("PULP: Single-threaded, no DMA"); // {{{
+  bench_start("PULP: Single-threaded, copy-based, no DMA"); // {{{
   #pragma omp target device(BIGPULP_MEMCPY) \
     map(to: a[0:n*n], b[0:n*n], n) \
     map(from: c[0:n*n])
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
   compare_matrices(c, d, n);
   memset((void*)c, 0, n*n); // }}}
 
-  bench_start("PULP: Parallel, no DMA"); // {{{
+  bench_start("PULP: Parallel, copy-based, no DMA"); // {{{
   #pragma omp target device(BIGPULP_MEMCPY) \
     map(to: a[0:n*n], b[0:n*n], n) \
     map(from: c[0:n*n])
@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   compare_matrices(c, d, n);
   memset((void*)c, 0, n*n); // }}}
 
-  bench_start("PULP: Parallel, DMA"); // {{{
+  bench_start("PULP: Parallel, copy-based, DMA"); // {{{
   #pragma omp target device(BIGPULP_MEMCPY) \
     map(to: a[0:n*n], b[0:n*n], n) \
     map(from: c[0:n*n])
@@ -125,6 +125,52 @@ int main(int argc, char *argv[])
   bench_stop();
   compare_matrices(c, d, n);
   memset((void*)c, 0, n*n); // }}}
+
+  bench_start("PULP: Parallel, SVM, DMA"); // {{{
+  #pragma omp target device(BIGPULP_SVM) \
+    map(to: a[0:n*n], b[0:n*n], n) \
+    map(from: c[0:n*n])
+  {
+    const unsigned n_local = hero_tryread((unsigned int *)&n);
+
+    uint32_t * const a_local
+        = (uint32_t *)hero_l1malloc(n_local*n_local*sizeof(uint32_t));
+    uint32_t * const b_local
+        = (uint32_t *)hero_l1malloc(n_local*n_local*sizeof(uint32_t));
+    uint32_t * const c_local
+        = (uint32_t *)hero_l1malloc(n_local*n_local*sizeof(uint32_t));
+    if ( (a_local == NULL) || (b_local == NULL) || (c_local == NULL) ) {
+      printf("ERROR: Memory allocation failed!\n");
+    }
+
+    hero_dma_job_t dma0
+        = hero_dma_memcpy_async(a_local, a, n_local*n_local*sizeof(uint32_t));
+    hero_dma_job_t dma1
+        = hero_dma_memcpy_async(b_local, b, n_local*n_local*sizeof(uint32_t));
+    hero_dma_wait(dma0);
+    hero_dma_wait(dma1);
+
+    #pragma omp parallel for collapse(2) \
+      firstprivate(a_local, b_local, c_local, n_local)
+    for (unsigned i = 0; i < n_local; i++) {
+      for (unsigned j = 0; j < n_local; j++) {
+        uint32_t sum = 0;
+        for (unsigned k = 0; k < n_local; k++)
+          sum = sum + a_local[i*n_local + k] * b_local[k*n_local + j];
+        c_local[i*n_local + j] = sum;
+      }
+    }
+
+    hero_dma_memcpy(c, c_local, n_local*n_local*sizeof(uint32_t));
+
+    hero_l1free(a_local);
+    hero_l1free(b_local);
+    hero_l1free(c_local);
+  }
+  bench_stop();
+  compare_matrices(c, d, n);
+  memset((void *)c, 0, (size_t)(n*n));
+  // }}}
 
   // Free memory. {{{
   free(a);
