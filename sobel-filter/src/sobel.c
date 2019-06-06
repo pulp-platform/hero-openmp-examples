@@ -23,21 +23,19 @@
 #include "sobel.h"
 #include "macros.h"
 
+int unsigned gray_size(int unsigned buffer_size) {
+  return buffer_size / 3;
+}
+
 /*
  * Transforms the rgb information of an image stored in buffer to it's gray
  * representation
  */
-int unsigned rgbToGray(byte * __restrict__ rgb, byte * __restrict__ gray, int unsigned buffer_size) {
-
-    // Take size for gray image and allocate memory
-    int unsigned gray_size = buffer_size / 3;
-
+void rgbToGray(byte * __restrict__ rgb, byte * __restrict__ gray, int unsigned buffer_size) {
     // Calculate the value for every pixel in gray
     #pragma omp parallel for
-    for(int i=0; i<gray_size; i++)
+    for(int i=0; i<buffer_size; i++)
         gray[i] = 0.30*rgb[i*3] + 0.59*rgb[i*3+1] + 0.11*rgb[i*3+2];
-
-    return gray_size;
 }
 
 /*
@@ -120,7 +118,8 @@ int sobelFilter(byte *rgb, byte *gray, byte *sobel_h_res, byte *sobel_v_res, byt
     int rgb_size = width*height*3;
 
     // Get gray representation of the image
-    int gray_size = rgbToGray(rgb, gray, rgb_size);
+    int unsigned gray_size = gray_size(rgb_size);
+    rgbToGray(rgb, gray, rgb_size);
 
     // Make sobel operations
     itConv(gray, gray_size, width, sobel_h, sobel_h_res);
