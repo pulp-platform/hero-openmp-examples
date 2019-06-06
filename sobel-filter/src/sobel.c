@@ -27,9 +27,10 @@
  * Transforms the rgb information of an image stored in buffer to it's gray
  * representation
  */
-int rgbToGray(byte * __restrict__ rgb, byte * __restrict__ gray, int buffer_size) {
+int unsigned rgbToGray(byte * __restrict__ rgb, byte * __restrict__ gray, int unsigned buffer_size) {
+
     // Take size for gray image and allocate memory
-    int gray_size = buffer_size / 3;
+    int unsigned gray_size = buffer_size / 3;
 
     // Calculate the value for every pixel in gray
     #pragma omp parallel for
