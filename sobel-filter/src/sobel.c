@@ -33,7 +33,6 @@ int unsigned gray_size(int unsigned buffer_size) {
  */
 void rgbToGray(byte * __restrict__ rgb, byte * __restrict__ gray, int unsigned buffer_size) {
     // Calculate the value for every pixel in gray
-    #pragma omp parallel for
     for(int i=0; i<buffer_size; i++)
         gray[i] = 0.30*rgb[i*3] + 0.59*rgb[i*3+1] + 0.11*rgb[i*3+2];
 }
@@ -83,7 +82,6 @@ void itConv(byte *buffer, int buffer_size, int width, int *op, byte * __restrict
     memset(op_mem, 0, SOBEL_OP_SIZE);
 
     // Make convolution for every pixel
-    #pragma omp parallel for firstprivate(op_mem)
     for(int i=0; i<buffer_size; i++) {
         // Make op_mem
         makeOpMem(buffer, buffer_size, width, i, op_mem);
@@ -105,7 +103,6 @@ void itConv(byte *buffer, int buffer_size, int width, int *op, byte * __restrict
  */
 void contour(byte * __restrict__ sobel_h, byte * __restrict__ sobel_v, int gray_size, byte * __restrict__ contour_img) {
     // Iterate through every pixel to calculate the contour image
-    #pragma omp parallel for
     for(int i=0; i<gray_size; i++) {
         contour_img[i] = (byte) sqrt(pow(sobel_h[i], 2) + pow(sobel_v[i], 2));
     }
