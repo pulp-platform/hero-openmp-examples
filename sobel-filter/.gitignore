@@ -4,8 +4,8 @@
 sobel
 check_sobel
 
-img.rgb
-img_out*
+output*
+*.gray
+*.rgb
 
 *.swp
-

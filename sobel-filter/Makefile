@@ -20,31 +20,26 @@ IMG_DIR      = imgs
 IMG_DIR_OUT  = imgs_out
 IMAGE_NAME   = img
 
-RUN_ARGS=$(IMG_DIR)/$(IMAGE_NAME).rgb $(IMG_DIR)/$(IMAGE_NAME).gray 512x512 -g $(IMG_DIR)/$(IMAGE_NAME)_gray.gray -i $(IMG_DIR)/$(IMAGE_NAME)_h.gray $(IMG_DIR)/$(IMAGE_NAME)_v.gray
-
-copyout:
-	convert $(IMG_DIR)/$(IMAGE_NAME).png $(IMG_DIR)/$(IMAGE_NAME).rgb	
-ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_APPS),)
-	scp -r ${IMG_DIR} $(HERO_TARGET_HOST):${HERO_TARGET_PATH_APPS}
-else
-$(error HERO_TARGET_HOST and/or HERO_TARGET_PATH_APPS is not set)
-endif
-
-copyin:
-	mkdir -p ${IMG_DIR_OUT}
-ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_APPS),)
-	scp -r $(HERO_TARGET_HOST):${HERO_TARGET_PATH_APPS}/${IMG_DIR}/* ${IMG_DIR_OUT}/.
-	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME).gray $(IMG_DIR_OUT)/$(IMAGE_NAME).png
-	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME)_gray.gray $(IMG_DIR_OUT)/$(IMAGE_NAME)_gray.png
-	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME)_h.gray $(IMG_DIR_OUT)/$(IMAGE_NAME)_h.png
-	convert -size 512x512 -depth 8 $(IMG_DIR_OUT)/$(IMAGE_NAME)_v.gray $(IMG_DIR_OUT)/$(IMAGE_NAME)_v.png
-else
-$(error HERO_TARGET_HOST and/or HERO_TARGET_PATH_APPS is not set)
-endif
-
-clean::
-	rm -rf $(IMG_DIR_OUT)
-
-run:: copyout
+RUN_ARGS=input.rgb output.gray 512x512 -g output_gray.gray -i output_h.gray output_v.gray
 
 -include $(PWD)/../common/default.mk
+
+clean::
+	rm -rf *.gray output*
+
+run: prepare $(EXE)
+ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_LIB),)
+	# Convert input PNG to RGB and copy it to the board.
+	convert input.png input.rgb
+	scp input.rgb $(HERO_TARGET_HOST):${exedir}/
+	# Launch application on board.
+	ssh -t $(HERO_TARGET_HOST) 'export LD_LIBRARY_PATH='"'$(HERO_TARGET_PATH_LIB)'"'; cd ${exedir}; ./$(EXE) $(RUN_ARGS)'
+	# Copy result files back.
+	scp '$(HERO_TARGET_HOST):${exedir}/*.gray' .
+	# Remove temporary directory on board.
+	ssh $(HERO_TARGET_HOST) 'rm -rf ${exedir}'
+	# Convert all gray files to PNGs.
+	/usr/bin/env bash -c 'for f in *.gray; do convert -size 512x512 -depth 8 $$f $$(basename -s .gray $$f).png; done'
+else
+$(error HERO_TARGET_HOST and/or HERO_TARGET_PATH_LIB is not set)
+endif
