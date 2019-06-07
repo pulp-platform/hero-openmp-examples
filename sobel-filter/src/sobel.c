@@ -115,11 +115,11 @@ int sobelFilter(byte *rgb, byte *gray, byte *sobel_h_res, byte *sobel_v_res, byt
     int sobel_h[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1},
         sobel_v[] = {1, 2, 1, 0, 0, 0, -1, -2, -1};
 
-    int rgb_size = width*height*3;
+    // Calculate size of arrays.
+    const int unsigned gray_size = width * height;
 
     // Get gray representation of the image
-    int unsigned gray_size = gray_size(rgb_size);
-    rgbToGray(rgb, gray, rgb_size);
+    rgbToGray(rgb, gray, gray_size);
 
     // Make sobel operations
     itConv(gray, gray_size, width, sobel_h, sobel_h_res);
@@ -127,6 +127,7 @@ int sobelFilter(byte *rgb, byte *gray, byte *sobel_h_res, byte *sobel_v_res, byt
 
     // Calculate contour matrix
     contour(sobel_h_res, sobel_v_res, gray_size, contour_img);
-    return gray_size;
+
+    return 0;
 }
 #pragma omp end declare target
