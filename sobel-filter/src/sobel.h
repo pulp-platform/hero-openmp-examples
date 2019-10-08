@@ -20,7 +20,7 @@
 
 #include "macros.h"
 
-int  rgbToGray   (byte *rgb, byte *gray, int buffer_size);
+void rgbToGray   (byte *rgb, byte *gray, int unsigned buffer_size);
 void makeOpMem   (byte *buffer, int buffer_size, int width, int cindex, byte *op_mem);
 int  convolution (byte *X, int *Y, int c_size);
 void itConv      (byte *buffer, int buffer_size, int width, int *op, byte *res);

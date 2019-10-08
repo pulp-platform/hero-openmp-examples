@@ -23,20 +23,18 @@
 #include "sobel.h"
 #include "macros.h"
 
+int unsigned gray_size(int unsigned buffer_size) {
+  return buffer_size / 3;
+}
+
 /*
  * Transforms the rgb information of an image stored in buffer to it's gray
  * representation
  */
-int rgbToGray(byte * __restrict__ rgb, byte * __restrict__ gray, int buffer_size) {
-    // Take size for gray image and allocate memory
-    int gray_size = buffer_size / 3;
-
+void rgbToGray(byte * __restrict__ rgb, byte * __restrict__ gray, int unsigned buffer_size) {
     // Calculate the value for every pixel in gray
-    #pragma omp parallel for
-    for(int i=0; i<gray_size; i++)
+    for(int i=0; i<buffer_size; i++)
         gray[i] = 0.30*rgb[i*3] + 0.59*rgb[i*3+1] + 0.11*rgb[i*3+2];
-
-    return gray_size;
 }
 
 /*
@@ -84,7 +82,6 @@ void itConv(byte *buffer, int buffer_size, int width, int *op, byte * __restrict
     memset(op_mem, 0, SOBEL_OP_SIZE);
 
     // Make convolution for every pixel
-    #pragma omp parallel for firstprivate(op_mem)
     for(int i=0; i<buffer_size; i++) {
         // Make op_mem
         makeOpMem(buffer, buffer_size, width, i, op_mem);
@@ -106,7 +103,6 @@ void itConv(byte *buffer, int buffer_size, int width, int *op, byte * __restrict
  */
 void contour(byte * __restrict__ sobel_h, byte * __restrict__ sobel_v, int gray_size, byte * __restrict__ contour_img) {
     // Iterate through every pixel to calculate the contour image
-    #pragma omp parallel for
     for(int i=0; i<gray_size; i++) {
         contour_img[i] = (byte) sqrt(pow(sobel_h[i], 2) + pow(sobel_v[i], 2));
     }
@@ -116,10 +112,11 @@ int sobelFilter(byte *rgb, byte *gray, byte *sobel_h_res, byte *sobel_v_res, byt
     int sobel_h[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1},
         sobel_v[] = {1, 2, 1, 0, 0, 0, -1, -2, -1};
 
-    int rgb_size = width*height*3;
+    // Calculate size of arrays.
+    const int unsigned gray_size = width * height;
 
     // Get gray representation of the image
-    int gray_size = rgbToGray(rgb, gray, rgb_size);
+    rgbToGray(rgb, gray, gray_size);
 
     // Make sobel operations
     itConv(gray, gray_size, width, sobel_h, sobel_h_res);
@@ -127,6 +124,7 @@ int sobelFilter(byte *rgb, byte *gray, byte *sobel_h_res, byte *sobel_v_res, byt
 
     // Calculate contour matrix
     contour(sobel_h_res, sobel_v_res, gray_size, contour_img);
-    return gray_size;
+
+    return 0;
 }
 #pragma omp end declare target
