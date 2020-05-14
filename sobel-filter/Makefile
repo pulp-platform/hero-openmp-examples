@@ -20,7 +20,7 @@ IMG_DIR      = imgs
 IMG_DIR_OUT  = imgs_out
 IMAGE_NAME   = img
 
-RUN_ARGS=input.rgb output.gray 512x512 -g output_gray.gray -i output_h.gray output_v.gray
+RUN_ARGS=input.rgb output.gray 192x192 -g output_gray.gray -i output_h.gray output_v.gray
 
 -include $(PWD)/../common/default.mk
 
@@ -39,7 +39,7 @@ ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_LIB),)
 	# Remove temporary directory on board.
 	ssh $(HERO_TARGET_HOST) 'rm -rf ${exedir}'
 	# Convert all gray files to PNGs.
-	/usr/bin/env bash -c 'for f in *.gray; do convert -size 512x512 -depth 8 $$f $$(basename -s .gray $$f).png; done'
+	/usr/bin/env bash -c 'for f in *.gray; do convert -size 192x192 -depth 8 $$f $$(basename -s .gray $$f).png; done'
 else
 $(error HERO_TARGET_HOST and/or HERO_TARGET_PATH_LIB is not set)
 endif
