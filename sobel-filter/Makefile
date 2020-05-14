@@ -31,13 +31,13 @@ run: prepare $(EXE)
 ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_LIB),)
 	# Convert input PNG to RGB and copy it to the board.
 	convert input.png input.rgb
-	scp input.rgb $(HERO_TARGET_HOST):${exedir}/
+	scp input.rgb $(HERO_TARGET_HOST):$(HERO_TARGET_PATH_APPS)/
 	# Launch application on board.
-	ssh -t $(HERO_TARGET_HOST) 'export LD_LIBRARY_PATH='"'$(HERO_TARGET_PATH_LIB)'"'; cd ${exedir}; ./$(EXE) $(RUN_ARGS)'
+	ssh -t $(HERO_TARGET_HOST) 'export LD_LIBRARY_PATH='"'$(HERO_TARGET_PATH_LIB)'"'; cd $(HERO_TARGET_PATH_APPS); ./$(EXE) $(RUN_ARGS)'
 	# Copy result files back.
-	scp '$(HERO_TARGET_HOST):${exedir}/*.gray' .
+	scp '$(HERO_TARGET_HOST):$(HERO_TARGET_PATH_APPS)/*.gray' .
 	# Remove temporary directory on board.
-	ssh $(HERO_TARGET_HOST) 'rm -rf ${exedir}'
+	ssh $(HERO_TARGET_HOST) 'rm -rf $(HERO_TARGET_PATH_APPS)'
 	# Convert all gray files to PNGs.
 	/usr/bin/env bash -c 'for f in *.gray; do convert -size 192x192 -depth 8 $$f $$(basename -s .gray $$f).png; done'
 else
