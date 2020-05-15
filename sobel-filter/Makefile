@@ -29,6 +29,8 @@ clean::
 
 run: prepare $(EXE)
 ifeq ($(call ifndef_any_of,HERO_TARGET_HOST HERO_TARGET_PATH_LIB),)
+	# Remove old output
+	rm -rf *.gray output*
 	# Convert input PNG to RGB and copy it to the board.
 	convert input.png input.rgb
 	scp input.rgb $(HERO_TARGET_HOST):$(HERO_TARGET_PATH_APPS)/
