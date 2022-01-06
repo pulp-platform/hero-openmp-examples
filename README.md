@@ -1,3 +1,7 @@
+# DEPRECATED
+
+This repository is part of a deprecated version of HERO.  Please refer to the [current HERO repository](https://github.com/pulp-platform/hero) for the current heterogeneous OpenMP example applications.
+
 # HERO OpenMP Examples
 This repository contains a set of examples of OpenMP application for the HERO platform.
 
